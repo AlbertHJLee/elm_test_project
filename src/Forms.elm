@@ -72,10 +72,18 @@ viewInput t p v toMsg =
   input [ type_ t, placeholder p, value v, onInput toMsg ] []
 
 
+validate : Model -> Bool
+validate model =
+  let
+    matches = model.password == model.passwordAgain
+    longenough = (String.length model.password) >= 8
+  in
+  matches && longenough
+    
+
 viewValidation : Model -> Html msg
 viewValidation model =
-  if model.password == model.passwordAgain then
+  if (validate model) then
     div [ style "color" "green" ] [ text "OK" ]
   else
-    div [ style "color" "red" ] [ text "Passwords do not match!" ]
-
+    div [ style "color" "red" ] [ text "Passwords must match and be at least 8 characters long!" ]
