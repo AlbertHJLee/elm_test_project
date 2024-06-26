@@ -83,7 +83,11 @@ validate model =
 
 viewValidation : Model -> Html msg
 viewValidation model =
-  if (validate model) then
+  if (String.length model.password) == 0 then
+    div [] []
+  else if (String.length model.password) < 8 then
+    div [ style "color" "red" ] [ text "Passwords must be at least 8 characters long!" ]
+  else if (validate model) then
     div [ style "color" "green" ] [ text "OK" ]
   else
-    div [ style "color" "red" ] [ text "Passwords must match and be at least 8 characters long!" ]
+    div [ style "color" "red" ] [ text "Passwords do not match!" ]
