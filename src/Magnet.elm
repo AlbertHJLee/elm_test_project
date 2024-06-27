@@ -45,12 +45,14 @@ displacement computer memory originx originy =
     -- The force from the mouse is proportional to inverse of distance r squared,
     -- like gravity. The force holding the object to the origin is proportional
     -- to its displacement d, like a mechanical spring.
+    --
     -- In other words, g * r^(-2) = k * d
+    -- or: d = r^(-2) * g / k
 
     spring_constant = 2.5
-    displaced = (r^(-2)) * 1000000.0 / spring_constant
+    displaced = (r^(-2)) * 600000.0 / spring_constant
 
-    max_displaced = 100
+    max_displaced = 40
     displaced_final = if (displaced < max_displaced) then displaced else max_displaced
 
   in
@@ -83,40 +85,17 @@ plot_circle computer new_location =
 view computer memory =
 
   let
-    new_location1 = (displacement computer memory 300 300)
-    new_location2 = (displacement computer memory 200 300)
-    new_location3 = (displacement computer memory 300 200)
-    new_location4 = (displacement computer memory 200 200)
-    -- location_list = List.map (displacement computer memory 100) 
-    --   [100, 200, 300]
-    location_grid = grid_of_locations computer memory [100, 200, 300] [100, 200, 300]
+    location_grid = grid_of_locations computer memory 
+      [-400,-300,-200,-100,   0, 100, 200, 300, 400]
+      [-200,-100,   0, 100, 200]
 
   in
   [ circle red 10
       |> moveX computer.mouse.x
       |> moveY computer.mouse.y
       |> fade (if computer.mouse.down then 0.2 else 1)
-    ,
-    circle lightPurple 30
-      |> moveX new_location1.newx
-      |> moveY new_location1.newy
-      |> fade (if computer.mouse.down then 0.5 else 1)
-    ,
-    circle lightPurple 30
-      |> moveX new_location2.newx
-      |> moveY new_location2.newy
-      |> fade (if computer.mouse.down then 0.5 else 1)
-    ,
-    circle lightPurple 30
-      |> moveX new_location3.newx
-      |> moveY new_location3.newy
-      |> fade (if computer.mouse.down then 0.5 else 1)
-    ,
-    circle lightPurple 30
-      |> moveX new_location4.newx
-      |> moveY new_location4.newy
-      |> fade (if computer.mouse.down then 0.5 else 1)
-  ] ++ (List.map (plot_circle computer) location_grid)
+  ] 
+  ++ (List.map (plot_circle computer) location_grid)
 
 --    ,
 --    div [] 
