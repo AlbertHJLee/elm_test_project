@@ -21,12 +21,10 @@ type alias Model =
   }
 
 
-displacement2 computer memory centerx centery = 
+displacement computer memory centerx centery = 
   let
     mousex = computer.mouse.x
     mousey = computer.mouse.y
-    -- centerx = 300
-    -- centery = 300
     deltax = mousex - centerx
     deltay = mousey - centery
     r = sqrt(deltax^2 + deltay^2)
@@ -40,12 +38,21 @@ displacement2 computer memory centerx centery =
   }
 
 
+plot_circle computer new_location =
+  circle lightPurple 30
+    |> moveX new_location.newx
+    |> moveY new_location.newy
+    |> fade (if computer.mouse.down then 0.5 else 1)
+  
+
 view computer memory =
   let
-    new_location1 = (displacement2 computer memory 300 300)
-    new_location2 = (displacement2 computer memory 200 300)
-    new_location3 = (displacement2 computer memory 300 200)
-    new_location4 = (displacement2 computer memory 200 200)
+    new_location1 = (displacement computer memory 300 300)
+    new_location2 = (displacement computer memory 200 300)
+    new_location3 = (displacement computer memory 300 200)
+    new_location4 = (displacement computer memory 200 200)
+    location_list = List.map (displacement computer memory 100) 
+      [100, 200, 300]
   in
   [ circle lightPurple 30
       |> moveX computer.mouse.x
@@ -80,12 +87,13 @@ view computer memory =
       |> moveX new_location4.newx
       |> moveY new_location4.newy
       |> fade (if computer.mouse.down then 0.5 else 1)
+  ] ++ (List.map (plot_circle computer) location_list)
+
 --    ,
 --    div [] 
 --      [ text (String.fromFloat new_location.newx)
 --      , text (String.fromFloat new_location.newy)
 --      ]
-  ]
 
 
 update computer memory =
