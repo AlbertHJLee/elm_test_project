@@ -21,31 +21,16 @@ type alias Model =
   }
 
 
-displacement computer memory = 
+displacement2 computer memory centerx centery = 
   let
     mousex = computer.mouse.x
     mousey = computer.mouse.y
-    centerx = 300
-    centery = 300
-    deltax = mousex - centerx
-    deltay = mousey - centery
-  in
-  { newx = centerx + (deltax*0.5)
-  , newy = centery + (deltay*0.5)
-  }
-
-
-displacement2 computer memory = 
-  let
-    mousex = computer.mouse.x
-    mousey = computer.mouse.y
-    centerx = 300
-    centery = 300
+    -- centerx = 300
+    -- centery = 300
     deltax = mousex - centerx
     deltay = mousey - centery
     r = sqrt(deltax^2 + deltay^2)
-    -- force = (deltax^2 + deltay^2)^(-1.5)
-    spring_constant = 0.5
+    spring_constant = 2.5
     displaced = (r^(-2)) * 1000000.0 / spring_constant
     max_displaced = 100
     displaced_final = if (displaced < max_displaced) then displaced else max_displaced
@@ -57,7 +42,10 @@ displacement2 computer memory =
 
 view computer memory =
   let
-    new_location = (displacement2 computer memory)
+    new_location1 = (displacement2 computer memory 300 300)
+    new_location2 = (displacement2 computer memory 200 300)
+    new_location3 = (displacement2 computer memory 300 200)
+    new_location4 = (displacement2 computer memory 200 200)
   in
   [ circle lightPurple 30
       |> moveX computer.mouse.x
@@ -74,8 +62,23 @@ view computer memory =
       |> fade (if computer.mouse.down then 0.2 else 1)
     ,
     circle lightPurple 30
-      |> moveX new_location.newx
-      |> moveY new_location.newy
+      |> moveX new_location1.newx
+      |> moveY new_location1.newy
+      |> fade (if computer.mouse.down then 0.5 else 1)
+    ,
+    circle lightPurple 30
+      |> moveX new_location2.newx
+      |> moveY new_location2.newy
+      |> fade (if computer.mouse.down then 0.5 else 1)
+    ,
+    circle lightPurple 30
+      |> moveX new_location3.newx
+      |> moveY new_location3.newy
+      |> fade (if computer.mouse.down then 0.5 else 1)
+    ,
+    circle lightPurple 30
+      |> moveX new_location4.newx
+      |> moveY new_location4.newy
       |> fade (if computer.mouse.down then 0.5 else 1)
 --    ,
 --    div [] 
