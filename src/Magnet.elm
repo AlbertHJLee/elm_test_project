@@ -12,8 +12,49 @@ import Playground exposing (..)
 import Html exposing (Html, button, div, text)
 
 
+
+
 main =
-  game view update ()
+  -- game view update ()
+  game view update (init_circles)
+
+
+init_circles = grid_of_circles
+  [-400,-300,-200,-100,   0, 100, 200, 300, 400]
+  [-200,-100,   0, 100, 200]
+
+grid_of_circles x_list y_list =
+  List.map (column_of_circles y_list) x_list
+    |> List.concat
+
+column_of_circles y_list x =
+  List.map (init_circle x) y_list
+
+init_circle x y =
+  let
+    results = displacement 0 -500 x y
+  in
+  { x = x
+  , y = y
+  , flagged = False
+  , newx = results.newx
+  , newy = results.newy
+  , distance = results.distance
+  , displaced = results.displaced
+  , angle = results.angle
+  }
+
+type alias Model =
+  List
+  { x : Number
+  , y : Number
+  , flagged : Bool
+  , newx : Number
+  , newy : Number
+  , distance : Float
+  , displaced : Float
+  , angle : Float
+  }
 
 
 
@@ -21,13 +62,13 @@ main =
 -- HELPER FUNCTIONS
 
 
-displacement computer memory originx originy =
+displacement mousex mousey originx originy =
 
   let
 
     -- Calculate distance between mouse and object's origin
-    mousex = computer.mouse.x
-    mousey = computer.mouse.y
+    -- mousex = computer.mouse.x
+    -- mousey = computer.mouse.y
     deltax = mousex - originx
     deltay = mousey - originy
     r0 = sqrt(deltax^2 + deltay^2)
@@ -61,13 +102,13 @@ displacement computer memory originx originy =
   }
 
 
-column_of_positions computer memory y_list x =
-  List.map (displacement computer memory x) y_list
+-- column_of_positions computer memory y_list x =
+--   List.map (displacement computer memory x) y_list
 
 
-grid_of_positions computer memory x_list y_list =
-  List.map (column_of_positions computer memory y_list) x_list
-    |> List.concat
+-- grid_of_positions computer memory x_list y_list =
+--   List.map (column_of_positions computer memory y_list) x_list
+--     |> List.concat
 
 
 
@@ -104,28 +145,48 @@ plot_circle computer position_data =
     -- |> fade (if computer.mouse.down then 0.5 else 1)
 
 
-view computer memory =
+view computer circles =
 
   let
-    circle_grid = grid_of_positions computer memory
-      [-400,-300,-200,-100,   0, 100, 200, 300, 400]
-      [-200,-100,   0, 100, 200]
+    -- circle_grid = grid_of_positions computer memory
+    --   [-400,-300,-200,-100,   0, 100, 200, 300, 400]
+    --   [-200,-100,   0, 100, 200]
 
-    first_circle = displacement computer memory 0 0
+    -- first_circle = displacement computer memory 0 0
+    first_circle = displacement computer.mouse.x computer.mouse.y 0 0
 
   in
   [words black ("Angle: " ++ (String.fromFloat first_circle.angle))
       |> move 0 -300
   ]
   ++
-  [ circle red 10
+  [ circle (rgb 252 233 79) (if computer.mouse.down then 10 else 26)
       |> moveX computer.mouse.x
       |> moveY computer.mouse.y
-      |> fade (if computer.mouse.down then 0.2 else 1)
+      |> fade (if computer.mouse.down then 1 else 0.6)
   ]
   ++
-  (List.map (plot_circle computer) circle_grid)
+  (List.map (plot_circle computer) circles)
 
 
-update computer memory =
-  memory
+
+
+-- UPDATE
+
+
+update_circle computer circle =
+  let
+    results = displacement computer.mouse.x computer.mouse.y circle.x circle.y
+  in
+  { circle | flagged = (if results.distance < 5 then True else circle.flagged)
+  , newx = results.newx
+  , newy = results.newy
+  , distance = results.distance
+  , displaced = results.displaced
+  , angle =  results.angle
+  }
+
+
+update: Computer -> Model -> Model
+update computer circles =
+  List.map (update_circle computer) circles
