@@ -1,5 +1,3 @@
-module Magnet exposing (..)
-
 -- Draw a circle around the mouse. Change its color by pressing down.
 --
 -- Adapted from https://elm-lang.org/examples/mouse
@@ -8,6 +6,8 @@ module Magnet exposing (..)
 --   https://package.elm-lang.org/packages/evancz/elm-playground/latest/
 --
 
+module Magnet exposing (..)
+
 import Playground exposing (..)
 import Html exposing (Html, button, div, text)
 
@@ -15,23 +15,27 @@ import Html exposing (Html, button, div, text)
 
 
 main =
-  -- game view update ()
   game view update (init_circles)
 
 
+init_circles : Model
 init_circles = grid_of_circles
   [-400,-300,-200,-100,   0, 100, 200, 300, 400]
   [-200,-100,   0, 100, 200]
+
 
 grid_of_circles x_list y_list =
   List.map (column_of_circles y_list) x_list
     |> List.concat
 
+
 column_of_circles y_list x =
   List.map (init_circle x) y_list
 
+
 init_circle x y =
   let
+    -- Initialize circle displacements as if mouse is at bottom of screen
     results = displacement 0 -500 x y
   in
   { x = x
@@ -43,6 +47,7 @@ init_circle x y =
   , displaced = results.displaced
   , angle = results.angle
   }
+
 
 type alias Model =
   List
@@ -67,8 +72,6 @@ displacement mousex mousey originx originy =
   let
 
     -- Calculate distance between mouse and object's origin
-    -- mousex = computer.mouse.x
-    -- mousey = computer.mouse.y
     deltax = mousex - originx
     deltay = mousey - originy
     r0 = sqrt(deltax^2 + deltay^2)
@@ -102,15 +105,6 @@ displacement mousex mousey originx originy =
   }
 
 
--- column_of_positions computer memory y_list x =
---   List.map (displacement computer memory x) y_list
-
-
--- grid_of_positions computer memory x_list y_list =
---   List.map (column_of_positions computer memory y_list) x_list
---     |> List.concat
-
-
 
 
 -- VIEW
@@ -133,7 +127,11 @@ plot_circle computer position_data =
     bluef = (blue1 - blue0) * xscaled + blue0
 
     ccolor = rgb redf 80 bluef
-    -- ccolor = rgb 173 127 168 -- 255 130 5
+
+    -- Color options:
+    -- rgb redf greenf bluef
+    -- rgb 173 127 168
+    -- rgb 255 130 5
 
     squashfactor = 0.7 + 24/(x+80)
 
@@ -142,17 +140,11 @@ plot_circle computer position_data =
     |> moveX position_data.newx
     |> moveY position_data.newy
     |> rotate (position_data.angle / pi * 180)
-    -- |> fade (if computer.mouse.down then 0.5 else 1)
 
 
 view computer circles =
 
   let
-    -- circle_grid = grid_of_positions computer memory
-    --   [-400,-300,-200,-100,   0, 100, 200, 300, 400]
-    --   [-200,-100,   0, 100, 200]
-
-    -- first_circle = displacement computer memory 0 0
     first_circle = displacement computer.mouse.x computer.mouse.y 0 0
 
   in
