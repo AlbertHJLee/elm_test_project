@@ -50,11 +50,14 @@ displacement computer memory originx originy =
     max_displaced = 40
     displaced_final = if (displaced < max_displaced) then displaced else max_displaced
 
+    angle = atan (deltay/deltax)
+
   in
   { newx = originx - ((deltax / r) * displaced_final)
   , newy = originy - ((deltay / r) * displaced_final)
   , distance = r
   , displaced = displaced
+  , angle = angle
   }
 
 
@@ -91,11 +94,14 @@ plot_circle computer position_data =
     ccolor = rgb redf 80 bluef
     -- ccolor = rgb 173 127 168 -- 255 130 5
 
+    squashfactor = 0.7 + 24/(x+80)
+
   in
-  circle ccolor 30
+  oval ccolor (60*squashfactor) 60
     |> moveX position_data.newx
     |> moveY position_data.newy
-    |> fade (if computer.mouse.down then 0.5 else 1)
+    |> rotate (position_data.angle / pi * 180)
+    -- |> fade (if computer.mouse.down then 0.5 else 1)
 
 
 view computer memory =
@@ -105,8 +111,10 @@ view computer memory =
       [-400,-300,-200,-100,   0, 100, 200, 300, 400]
       [-200,-100,   0, 100, 200]
 
+    first_circle = displacement computer memory 0 0
+
   in
-  [words black (String.fromFloat 100.0)
+  [words black ("Angle: " ++ (String.fromFloat first_circle.angle))
       |> move 0 -300
   ]
   ++
