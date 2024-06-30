@@ -135,11 +135,19 @@ plot_circle computer position_data =
 
     squashfactor = 0.7 + 24/(x+80)
 
+    -- Show which circles have been flagged by alpha value
+    -- Fade more when mouse is down for extra visual feedback
+    fade_value =
+      if position_data.flagged
+      then (if computer.mouse.down then 0.4 else 0.5)
+      else 1
+
   in
   oval ccolor (60*squashfactor) 60
     |> moveX position_data.newx
     |> moveY position_data.newy
     |> rotate (position_data.angle / pi * 180)
+    |> fade fade_value
 
 
 view computer circles =
@@ -155,7 +163,7 @@ view computer circles =
   [ circle (rgb 252 233 79) (if computer.mouse.down then 10 else 26)
       |> moveX computer.mouse.x
       |> moveY computer.mouse.y
-      |> fade (if computer.mouse.down then 1 else 0.6)
+      |> fade (if computer.mouse.down then 1 else 0.5)
   ]
   ++
   (List.map (plot_circle computer) circles)
@@ -167,10 +175,16 @@ view computer circles =
 
 
 update_circle computer circle =
+
   let
     results = displacement computer.mouse.x computer.mouse.y circle.x circle.y
+
+    -- Circles are harder to flag when mouse is down
+    contact_distance = if computer.mouse.down then 2 else 5
+    is_flagged = if results.distance < contact_distance then True else circle.flagged
+
   in
-  { circle | flagged = (if results.distance < 5 then True else circle.flagged)
+  { circle | flagged = is_flagged
   , newx = results.newx
   , newy = results.newy
   , distance = results.distance
