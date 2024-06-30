@@ -150,13 +150,22 @@ plot_circle computer position_data =
     |> fade fade_value
 
 
-view computer circles =
+bool_to_int : Bool -> Int
+bool_to_int x =
+  if x then 1 else 0
 
+
+view: Computer -> Model -> List Shape
+view computer circles =
   let
     first_circle = displacement computer.mouse.x computer.mouse.y 0 0
+    total_flagged =
+      List.map .flagged circles
+      |> List.map bool_to_int
+      |> List.sum
 
   in
-  [words black ("Angle: " ++ (String.fromFloat first_circle.angle))
+  [words black ("Circles flagged: " ++ (String.fromInt total_flagged))
       |> move 0 -300
   ]
   ++
