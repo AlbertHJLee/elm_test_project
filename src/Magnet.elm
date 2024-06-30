@@ -169,10 +169,10 @@ view computer circles =
       |> move 0 -300
   ]
   ++
-  [ circle (rgb 252 233 79) (if computer.mouse.down then 10 else 26)
+  [ circle (rgb 252 233 79) (if computer.mouse.down then 26 else 10)
       |> moveX computer.mouse.x
       |> moveY computer.mouse.y
-      |> fade (if computer.mouse.down then 1 else 0.5)
+      |> fade (if computer.mouse.down then 0.5 else 1)
   ]
   ++
   (List.map (plot_circle computer) circles)
@@ -188,8 +188,8 @@ update_circle computer circle =
   let
     results = displacement computer.mouse.x computer.mouse.y circle.x circle.y
 
-    -- Circles are harder to flag when mouse is down
-    contact_distance = if computer.mouse.down then 2 else 5
+    -- Circles are easier to flag when mouse is down
+    contact_distance = if computer.mouse.down then 5 else 2
     is_flagged = if results.distance < contact_distance then True else circle.flagged
 
   in
