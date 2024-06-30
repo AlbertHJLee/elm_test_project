@@ -1,6 +1,6 @@
 module Magnet exposing (..)
 
--- Draw a cicle around the mouse. Change its color by pressing down.
+-- Draw a circle around the mouse. Change its color by pressing down.
 --
 -- Adapted from https://elm-lang.org/examples/mouse
 --
@@ -58,12 +58,12 @@ displacement computer memory originx originy =
   }
 
 
-column_of_locations computer memory y_list x =
+column_of_positions computer memory y_list x =
   List.map (displacement computer memory x) y_list
 
 
-grid_of_locations computer memory x_list y_list =
-  List.map (column_of_locations computer memory y_list) x_list
+grid_of_positions computer memory x_list y_list =
+  List.map (column_of_positions computer memory y_list) x_list
     |> List.concat
 
 
@@ -72,46 +72,51 @@ grid_of_locations computer memory x_list y_list =
 -- VIEW
 
 
-plot_circle computer new_location =
+plot_circle computer position_data =
+
   let
-    x = new_location.displaced
-    -- xscaled = if (x <= 1) then x else (1 - 1/(x+1))
+    x = position_data.displaced
     xscaled = 1 - 8/(x+8)
-    red0 = 173
-    redf = (255-red0) * xscaled + red0
-    ccolor = rgb redf 80 168
-    -- ccolor = rgb redf 127 168
+
+    red0 = 133
+    red1 = 255
+    redf = (red1 - red0) * xscaled + red0
+    green0 = 127
+    green1 = 139
+    greenf = (green1 - green0) * xscaled + green0
+    blue0 = 168
+    blue1 = 160
+    bluef = (blue1 - blue0) * xscaled + blue0
+
+    ccolor = rgb redf 80 bluef
+    -- ccolor = rgb 173 127 168 -- 255 130 5
+
   in
-  -- circle lightPurple 30
   circle ccolor 30
-    |> moveX new_location.newx
-    |> moveY new_location.newy
+    |> moveX position_data.newx
+    |> moveY position_data.newy
     |> fade (if computer.mouse.down then 0.5 else 1)
 
 
 view computer memory =
 
   let
-    location_grid = grid_of_locations computer memory
+    circle_grid = grid_of_positions computer memory
       [-400,-300,-200,-100,   0, 100, 200, 300, 400]
       [-200,-100,   0, 100, 200]
 
   in
   [words black (String.fromFloat 100.0)
       |> move 0 -300
-  ] ++
+  ]
+  ++
   [ circle red 10
       |> moveX computer.mouse.x
       |> moveY computer.mouse.y
       |> fade (if computer.mouse.down then 0.2 else 1)
-  ] ++
-  (List.map (plot_circle computer) location_grid)
-
---    ,
---    div []
---      [ text (String.fromFloat new_location.newx)
---      , text (String.fromFloat new_location.newy)
---      ]
+  ]
+  ++
+  (List.map (plot_circle computer) circle_grid)
 
 
 update computer memory =
