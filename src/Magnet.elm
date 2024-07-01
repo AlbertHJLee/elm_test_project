@@ -24,6 +24,7 @@ init_circles = grid_of_circles
   [-200,-100,   0, 100, 200]
 
 
+grid_of_circles: List Number -> List Number -> Model
 grid_of_circles x_list y_list =
   List.map (column_of_circles y_list) x_list
     |> List.concat
@@ -33,6 +34,7 @@ column_of_circles y_list x =
   List.map (init_circle x) y_list
 
 
+init_circle: Number -> Number -> ModelUnit
 init_circle x y =
   let
     -- Initialize circle displacements as if mouse is at bottom of screen
@@ -50,7 +52,10 @@ init_circle x y =
 
 
 type alias Model =
-  List
+  List ModelUnit
+
+
+type alias ModelUnit =
   { x : Number
   , y : Number
   , flagged : Bool
@@ -105,6 +110,11 @@ displacement mousex mousey originx originy =
   }
 
 
+bool_to_int : Bool -> Int
+bool_to_int x =
+  if x then 1 else 0
+
+
 
 
 -- VIEW
@@ -150,11 +160,6 @@ plot_circle computer position_data =
     |> fade fade_value
 
 
-bool_to_int : Bool -> Int
-bool_to_int x =
-  if x then 1 else 0
-
-
 view: Computer -> Model -> List Shape
 view computer circles =
   let
@@ -183,6 +188,7 @@ view computer circles =
 -- UPDATE
 
 
+update_circle: Computer -> ModelUnit -> ModelUnit
 update_circle computer circle =
 
   let
