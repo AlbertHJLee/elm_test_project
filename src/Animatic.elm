@@ -14,6 +14,7 @@ import Task
 
 import Svg exposing (svg, circle, rect, line, polygon)
 import Svg.Attributes exposing (..)
+import Ease
 
 
 
@@ -222,7 +223,7 @@ triangle1 data =
   let
     translate_text =
       "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
-      ") rotate(" ++ (String.fromFloat data.angle) ++ ")"
+      ") rotate(" ++ (String.fromFloat data.angle) ++ " 40,30)"
   in
   polygon
     [ points "0,0 80,60 0,60"
@@ -241,18 +242,24 @@ scene_one model =
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
     fdiff = (toFloat diff) * 0.001
-    ease_val =
-      if (fdiff < 2.0) then fdiff * 0.5
+    t1 = 1.6
+    ease_input =
+      if (fdiff < t1) then (fdiff / t1)
       else 1.0
+    -- ease_output = Ease.bezier 0.16 0.15 0.11 1.00 ease_input
+    -- ease_output = Ease.bezier 0.20 0.00 0.20 1.00 ease_input
+    -- ease_output = Ease.bezier 0.50 0.01 0.50 1.00 ease_input
+    -- ease_output = Ease.bezier 0.47 0.14 0.03 0.79 ease_input
+    ease_output = Ease.bezier 0.26 0.79 0.28 1.00 ease_input
     x0 = 260
     y0 = 300
-    x1 = 341
-    y1 = 359
-    x = (x0 + (x1 - x0) * ease_val)
-    y = (y0 + (y1 - y0) * ease_val)
+    x1 = 261
+    y1 = 299
+    x = (x0 + (x1 - x0) * ease_output)
+    y = (y0 + (y1 - y0) * ease_output)
     -- rx = x0 + (0.5 * w0)
     -- ry = y0 + (0.5 * h0)
-    angle = 180.0 * ease_val
+    angle = 180.0 * ease_output
   in
   div
     [ ]
