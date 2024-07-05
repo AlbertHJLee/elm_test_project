@@ -214,54 +214,54 @@ scene_zero model =
       [ width "600"
       , height "500"
       ]
-      [ polygon
-        [ points "0,0 80,60 0,60"
-        , transform "translate(260,300)"
-        , fill "#c0c0ff"
-        , fillOpacity (String.fromFloat op_val)
-        , stroke "#0000f0"
-        , strokeWidth "2"
-        , strokeOpacity (String.fromFloat op_val)
-        ]
-        []
+      [ triangle1 { x = 260, y = 300, angle = 0.0, opacity = op_val }
       ]
     ]
+
+triangle1 data =
+  let
+    translate_text =
+      "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
+      ") rotate(" ++ (String.fromFloat data.angle) ++ ")"
+  in
+  polygon
+    [ points "0,0 80,60 0,60"
+    -- , transform "translate(260,300)"
+    , transform translate_text
+    , fill "#c0c0ff"
+    , fillOpacity (String.fromFloat data.opacity)
+    , stroke "#0000f0"
+    , strokeWidth "2"
+    , strokeOpacity (String.fromFloat data.opacity)
+    ]
+    []
 
 scene_one : Model -> Html Msg
 scene_one model =
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
-    angle = (toFloat diff) * 0.001 * 30.0
-    x0 = 100
-    y0 = 15
-    w0 = 40
-    h0 = 70
-    rx = x0 + (0.5 * w0)
-    ry = y0 + (0.5 * h0)
+    fdiff = (toFloat diff) * 0.001
+    ease_val =
+      if (fdiff < 2.0) then fdiff * 0.5
+      else 1.0
+    x0 = 260
+    y0 = 300
+    x1 = 341
+    y1 = 359
+    x = (x0 + (x1 - x0) * ease_val)
+    y = (y0 + (y1 - y0) * ease_val)
+    -- rx = x0 + (0.5 * w0)
+    -- ry = y0 + (0.5 * h0)
+    angle = 180.0 * ease_val
   in
   div
     [ ]
     [ svg
-        [ viewBox "0 0 400 400"
-        , width "400"
-        , height "400"
+        [ width "600"
+        , height "500"
         ]
-        [ rect
-            [ x (String.fromInt x0)
-            , y (String.fromInt y0)
-            , width (String.fromInt w0)
-            , height (String.fromInt h0)
-            , fill "blue"
-            , stroke "black"
-            , strokeWidth "2"
-            , transform
-                ( "rotate( " ++
-                  (String.fromFloat angle) ++ " " ++
-                  (String.fromFloat rx) ++ " " ++
-                  (String.fromFloat ry) ++ " )"
-                )
-            ]
-            []
+        [ triangle1 { x = x0, y = y0, angle = 0.0, opacity=1.0 }
+        , triangle1 { x = x, y = y, angle = angle, opacity=0.5 }
         ]
     ]
 
