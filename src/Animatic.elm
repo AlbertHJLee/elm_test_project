@@ -12,7 +12,7 @@ import Html.Attributes as Attr
 import Time
 import Task
 
-import Svg exposing (svg, circle, rect, line)
+import Svg exposing (svg, circle, rect, line, polygon)
 import Svg.Attributes exposing (..)
 
 
@@ -44,7 +44,7 @@ init _ =
       4
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
-  , Cmd.none
+  , Task.perform SetTime Time.now
   )
 
 
@@ -71,9 +71,7 @@ update msg model =
         , Cmd.none
         )
       else
-        ( { model
-            | index = model.index + 1
-          }
+        ( { model | index = model.index + 1 }
         , Task.perform SetTime Time.now
         )
 
@@ -83,9 +81,7 @@ update msg model =
         , Cmd.none
         )
       else
-        ( { model
-            | index = model.index - 1
-          }
+        ( { model | index = model.index - 1 }
         , Task.perform SetTime Time.now
         )
 
@@ -98,16 +94,22 @@ update msg model =
       )
 
     Tick newTime ->
-      ( { model | current_time = newTime }
+      ( { model
+          | current_time = newTime
+        }
       , Cmd.none
       )
 
     Reset ->
-      ( model, Cmd.none)
+      ( { model
+          | index = 0
+        }
+      , Task.perform SetTime Time.now
+      )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  -- Time.every 1000 Tick
   Browser.Events.onAnimationFrame Tick
 
 
@@ -153,10 +155,9 @@ view model =
             []
         , div
             [ Attr.style "width" "160px"
-            , Attr.style "height" "160px"
-            , Attr.style "text-align" "center"
             , Attr.style "background-color" "green"
             , Attr.style "margin" "10px auto"
+            , Attr.style "text-align" "center"
             ]
             [ div
                 []
@@ -185,34 +186,46 @@ viewScene model =
   div
     []
     [ case model.index of
-        1 -> (scene_one model)
-        2 -> (scene_two model)
+        0 -> scene_zero model
+        1 -> scene_one model
+        2 -> scene_two model
         _ -> div [] []
     ]
 
-
--- NOTE: This may be an unstable way to get the styles for a Html.div function
--- May want to refactor
-mainStyle : List (Html.Attribute Msg)
-mainStyle =
-  [ Attr.style "width" "400px"
-  , Attr.style "height" "400px"
-  , Attr.style "background-color" "yellow"
-  -- , Attr.style "justify-content" "center"
-  -- , Attr.style "align-items" "center"
-  -- , Attr.style "display" "flex"
-  -- , Attr.style "text-align" "center"
-  ]
 
 
 
 -- SCENES
 
-scene_zero_to_one : Model -> Html Msg
-scene_zero_to_one model =
+scene_zero : Model -> Html Msg
+scene_zero model =
+  let
+    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
+    fdiff = (toFloat diff) * 0.001
+    t0 = 0.4
+    op_val =
+      if (fdiff < t0) then 0.0
+      else if (fdiff < 2.0) then (fdiff - t0)
+      else 1.0
+  in
   div
     []
-    []
+    [svg
+      [ width "600"
+      , height "500"
+      ]
+      [ polygon
+        [ points "0,0 80,60 0,60"
+        , transform "translate(260,300)"
+        , fill "#c0c0ff"
+        , fillOpacity (String.fromFloat op_val)
+        , stroke "#0000f0"
+        , strokeWidth "2"
+        , strokeOpacity (String.fromFloat op_val)
+        ]
+        []
+      ]
+    ]
 
 scene_one : Model -> Html Msg
 scene_one model =
