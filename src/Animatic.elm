@@ -237,29 +237,49 @@ triangle1 data =
     ]
     []
 
+transition : Float -> Float -> ( Float -> Float) -> Float -> Float
+transition t1 t2 fxn t =
+  let
+    duration = t2 - t1
+    ease_input =
+      if (t < t1) then 0.0
+      else if (t < t2) then (t - t1) / duration
+      else 1.0
+    ease_output = fxn ease_input
+  in
+  ease_output
+
+interpolate : Float -> Float -> Float -> Float
+interpolate x1 x2 theta =
+  x1 + (x2 - x1) * theta
+
+
 scene_one : Model -> Html Msg
 scene_one model =
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
-    fdiff = (toFloat diff) * 0.001
-    t1 = 1.6
-    ease_input =
-      if (fdiff < t1) then (fdiff / t1)
-      else 1.0
-    -- ease_output = Ease.bezier 0.16 0.15 0.11 1.00 ease_input
-    -- ease_output = Ease.bezier 0.20 0.00 0.20 1.00 ease_input
-    -- ease_output = Ease.bezier 0.50 0.01 0.50 1.00 ease_input
-    -- ease_output = Ease.bezier 0.47 0.14 0.03 0.79 ease_input
-    ease_output = Ease.bezier 0.26 0.79 0.28 1.00 ease_input
-    x0 = 260
-    y0 = 300
-    x1 = 261
-    y1 = 299
-    x = (x0 + (x1 - x0) * ease_output)
-    y = (y0 + (y1 - y0) * ease_output)
-    -- rx = x0 + (0.5 * w0)
-    -- ry = y0 + (0.5 * h0)
-    angle = 180.0 * ease_output
+    seconds_elapsed = (toFloat diff) * 0.001
+    ease_1 =
+      transition
+        0.2
+        1.6
+        ( Ease.bezier 0.26 0.79 0.28 1.00 )
+        seconds_elapsed
+    x_i = 260
+    y_i = 300
+    x_a = interpolate x_i (x_i+1) ease_1
+    y_a = interpolate y_i (y_i-1) ease_1
+    angle = interpolate 0.0 180.0 ease_1
+    ease_2 = transition 1.6 2.6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    x_j = 274
+    y_j = 160
+    x_b = interpolate x_i x_j ease_2
+    y_b = interpolate y_i y_j ease_2
+    ease_3 = transition 1.9 2.9 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    x_k = 170
+    y_k = 170
+    x_c = interpolate x_i x_k ease_3
+    y_c = interpolate y_i y_k ease_3
   in
   div
     [ ]
@@ -267,8 +287,10 @@ scene_one model =
         [ width "600"
         , height "500"
         ]
-        [ triangle1 { x = x0, y = y0, angle = 0.0, opacity=1.0 }
-        , triangle1 { x = x, y = y, angle = angle, opacity=0.5 }
+        [ triangle1 { x = x_i, y = y_i, angle = 0.0, opacity=1.0 }
+        , triangle1 { x = x_c, y = y_c, angle = 0.0, opacity=0.5 }
+        , triangle1 { x = x_b, y = y_b, angle = 0.0, opacity=0.5 }
+        , triangle1 { x = x_a, y = y_a, angle = angle, opacity=0.5 }
         ]
     ]
 
