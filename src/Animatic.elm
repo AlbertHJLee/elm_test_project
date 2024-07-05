@@ -202,12 +202,8 @@ scene_zero : Model -> Html Msg
 scene_zero model =
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
-    fdiff = (toFloat diff) * 0.001
-    t0 = 0.4
-    op_val =
-      if (fdiff < t0) then 0.0
-      else if (fdiff < 2.0) then (fdiff - t0)
-      else 1.0
+    t = (toFloat diff) * 0.001
+    ease_1 = transition 0.4 2.0 ( \theta -> theta ) t
   in
   div
     []
@@ -215,7 +211,7 @@ scene_zero model =
       [ width "600"
       , height "500"
       ]
-      [ triangle1 { x = 260, y = 300, angle = 0.0, opacity = op_val }
+      [ triangle1 { x = 260, y = 300, angle = 0.0, opacity = ease_1 }
       ]
     ]
 
@@ -271,15 +267,28 @@ scene_one model =
     y_a = interpolate y_i (y_i-1) ease_1
     angle = interpolate 0.0 180.0 ease_1
     ease_2 = transition 1.6 2.6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    ease_3 = transition 1.9 2.9 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    ease_4 = transition 3.2 5.2 ( Ease.bezier 0.79 0.01 0.21 1.00 ) seconds_elapsed
     x_j = 274
     y_j = 160
-    x_b = interpolate x_i x_j ease_2
-    y_b = interpolate y_i y_j ease_2
-    ease_3 = transition 1.9 2.9 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    x_b1 = interpolate x_i x_j ease_2
+    y_b1 = interpolate y_i y_j ease_2
     x_k = 170
     y_k = 170
-    x_c = interpolate x_i x_k ease_3
-    y_c = interpolate y_i y_k ease_3
+    x_c1 = interpolate x_i x_k ease_3
+    y_c1 = interpolate y_i y_k ease_3
+    x_l = 332
+    y_l = 228
+    x_b2 = interpolate 0.0 (x_l - x_j) ease_4
+    y_b2 = interpolate 0.0 (y_l - y_j + 1) ease_4
+    x_c2 = interpolate 0.0 (x_l - x_k - 1) ease_4
+    y_c2 = interpolate 0.0 (y_l - y_k) ease_4
+    x_b = x_b1 + x_b2
+    y_b = y_b1 + y_b2
+    x_c = x_c1 + x_c2
+    y_c = y_c1 + y_c2
+    angle_b = interpolate 0.0 -90.0 ease_4
+    angle_c = interpolate 0.0 90.0 ease_4
   in
   div
     [ ]
@@ -288,8 +297,8 @@ scene_one model =
         , height "500"
         ]
         [ triangle1 { x = x_i, y = y_i, angle = 0.0, opacity=1.0 }
-        , triangle1 { x = x_c, y = y_c, angle = 0.0, opacity=0.5 }
-        , triangle1 { x = x_b, y = y_b, angle = 0.0, opacity=0.5 }
+        , triangle1 { x = x_c, y = y_c, angle = angle_c, opacity=0.5 }
+        , triangle1 { x = x_b, y = y_b, angle = angle_b, opacity=0.5 }
         , triangle1 { x = x_a, y = y_a, angle = angle, opacity=0.5 }
         ]
     ]
