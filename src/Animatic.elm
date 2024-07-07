@@ -30,6 +30,9 @@ main =
 -- MODEL
 
 
+-- The model should track both the time an event was triggered (click_time)
+-- and the current time. Thus, animations can be timed relative to the event
+
 type alias Model =
   { index : Int
   , max_scenes : Int
@@ -122,7 +125,22 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   let
-    x = 0
+    window_width = 600
+    window_height = 540
+    window_half_stroke = 1
+    window_stroke = window_half_stroke * 2
+    win_stroke_text = ((String.fromInt window_stroke) ++ "px solid #f0f0f0")
+
+    -- Spacing for control area
+    window_margin_bottom = 20 - window_stroke
+    input_area_height = 260
+
+    -- Make room for border strokes, which get added to outside of div box
+    panel_width = window_width + 4 * window_half_stroke
+    panel_height = window_height + input_area_height + 4 * window_half_stroke
+    panel_padding_visual = 30
+    panel_padding = panel_padding_visual - 2 * window_half_stroke
+
   in
   div
     [ Attr.style "width" "device-width"
@@ -130,33 +148,43 @@ view model =
     , Attr.style "display" "flex"
     , Attr.style "justify-content" "center"
     , Attr.style "align-items" "center"
-    , Attr.style "background-color" "gray"
-    , Attr.style "border" "3px solid black"
+    , Attr.style "background-color" "#f0f0f0"
     ]
     [ div
-        [ Attr.style "width" "640px"
-        , Attr.style "height" "840px"
+        [ Attr.style "width" ((String.fromInt panel_width) ++ "px")
+        , Attr.style "height" ((String.fromInt panel_height) ++"px")
         , Attr.style "justify-content" "center"
         , Attr.style "align-items" "center"
-        , Attr.style "background-color" "yellow"
+        , Attr.style "background-color" "white"
+        , Attr.style "padding" ((String.fromInt panel_padding) ++ "px")
+        , Attr.style "border-radius" "16px"
         ]
-        [ div
-            [ Attr.style "width" "600px"
-            , Attr.style "height" "540px"
+        [
+          -- Designated area for viewing scenes and visuals
+          div
+            [ Attr.style "width" ((String.fromInt window_width) ++ "px")
+            , Attr.style "height" ((String.fromInt window_height) ++ "px")
             , Attr.style "background-color" "white"
-            , Attr.style "margin" "10px auto"
+            , Attr.style "margin" "auto"
+            , Attr.style "margin-bottom" ((String.fromInt window_margin_bottom) ++ "px")
+            , Attr.style "border" win_stroke_text
+            , Attr.style "border-radius" "6px"
             ]
             [ viewScene model]
-        , div
-            [ Attr.style "width" "620px"
+        ,
+          -- Placeholder for UI element
+          div
+            [ Attr.style "width" ((String.fromInt window_width) ++ "px")
             , Attr.style "height" "10px"
-            , Attr.style "background-color" "red"
-            , Attr.style "margin" "10px auto"
+            , Attr.style "background-color" "white"
+            , Attr.style "margin" "auto"
             ]
             []
-        , div
+        ,
+          -- Box holding main user controls
+          div
             [ Attr.style "width" "160px"
-            , Attr.style "background-color" "green"
+            , Attr.style "background-color" "white"
             , Attr.style "margin" "10px auto"
             , Attr.style "text-align" "center"
             ]
@@ -173,8 +201,8 @@ view model =
                 , Attr.style "background-color" "white"
                 ]
                 [ text (String.fromInt model.index) ]
-            , button [ onClick Previous ] [ text "Previous" ]
-            , button [ onClick Next ] [ text "Next" ]
+            , button [ onClick Previous ] [ text "<" ]
+            , button [ onClick Next ] [ text ">" ]
             , div [] []
             , button [ onClick Reset] [ text "reset" ]
             ]
