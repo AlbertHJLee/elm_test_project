@@ -276,6 +276,19 @@ triangle_svg data =
     []
 
 
+one_line xa ya xb yb opac transform_text =
+  line
+    [ x1 (String.fromFloat xa)
+    , y1 (String.fromFloat ya)
+    , x2 (String.fromFloat xb)
+    , y2 (String.fromFloat yb)
+    , stroke "#0000f0"
+    , strokeWidth "2"
+    , opacity (String.fromFloat opac)
+    , transform transform_text
+    ]
+    []
+
 congruency_marks data =
   let
     xc = data.x
@@ -285,18 +298,17 @@ congruency_marks data =
     transform_text =
       "rotate(" ++ (String.fromFloat data.angle) ++
       " " ++ (String.fromFloat xc) ++ "," ++ (String.fromFloat yc) ++ ")"
+    -- mark_list = [ xc - 4, xc, xc + 4]
+    mark_spacing = 4
+    offset = mark_spacing * ( data.n / 2 + 0.5 )
+    mark_list =
+      ( List.range 1 (round data.n) )
+          |> ( List.map (\p -> (toFloat p) * mark_spacing - offset + xc ) )
   in
-  line
-    [ x1 (String.fromFloat xc)
-    , y1 (String.fromFloat (yc + halflength))
-    , x2 (String.fromFloat xc)
-    , y2 (String.fromFloat (yc - halflength))
-    , stroke "#0000f0"
-    , strokeWidth "2"
-    , opacity (String.fromFloat data.opacity)
-    , transform transform_text
-    ]
-    []
+  ( List.map
+      ( \xi -> ( one_line xi (yc + halflength) xi (yc - halflength) data.opacity transform_text ) )
+      mark_list
+  )
 
 
 scene_zero : Model -> Html Msg
@@ -309,7 +321,7 @@ scene_zero model =
     t1 = 0.6
     t2 = t1 + 0.4
     t3 = t2 + 0.1  -- fade in annotations
-    t4 = t3 + 0.2
+    t4 = t3 + 0.15
 
     -- Fade in first triangle
     ease_1 = transition t1 t2 ( \theta -> theta ) t
@@ -347,14 +359,16 @@ scene_zero model =
       [ width "600"
       , height "500"
       ]
-      [ triangle_svg { x = 260, y = 300, angle = 0.0, opacity = ease_1 }
-      , congruency_marks { x = xa, y = ya, angle =  -90.0, opacity = ease_2 }
-      , congruency_marks { x = xb, y = yb, angle =    0.0, opacity = ease_3 }
-      , congruency_marks { x = xc, y = yc, angle = anglec, opacity = ease_4 }
-      , text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_2, fontsize = "20px" }
+      (
+      [ triangle_svg { x = 260, y = 300, angle = 0.0, opacity = ease_1 } ] ++
+      ( congruency_marks { x = xa, y = ya, angle =  -90.0, opacity = ease_2, n = 1 } ) ++
+      ( congruency_marks { x = xb, y = yb, angle =    0.0, opacity = ease_3, n = 2 } ) ++
+      ( congruency_marks { x = xc, y = yc, angle = anglec, opacity = ease_4, n = 3 } ) ++
+      [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_2, fontsize = "20px" }
       , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
       , text_svg { x = txt3.x, y = txt3.y, texts = texts3, opacity = ease_4, fontsize = "20px" }
       ]
+      )
     ]
 
 
