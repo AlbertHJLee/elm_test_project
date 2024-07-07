@@ -191,6 +191,7 @@ viewScene model =
         1 -> scene_one model
         2 -> scene_two model
         3 -> scene_three model
+        4 -> scene_four model
         _ -> div [] []
     ]
 
@@ -218,7 +219,7 @@ interpolate x1 x2 theta =
   x1 + (x2 - x1) * theta
 
 
-triangle1 data =
+triangle_svg data =
   let
     translate_text =
       "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
@@ -251,7 +252,7 @@ scene_zero model =
       [ width "600"
       , height "500"
       ]
-      [ triangle1 { x = 260, y = 300, angle = 0.0, opacity = ease_1 }
+      [ triangle_svg { x = 260, y = 300, angle = 0.0, opacity = ease_1 }
       ]
     ]
 
@@ -313,10 +314,10 @@ scene_one model =
         [ width "600"
         , height "500"
         ]
-        [ triangle1 { x = x_i, y = y_i, angle = 0.0, opacity = 1.0 }
-        , triangle1 { x = x_c, y = y_c, angle = angle_c, opacity = 0.5 }
-        , triangle1 { x = x_b, y = y_b, angle = angle_b, opacity = 0.5 }
-        , triangle1 { x = x_a, y = y_a, angle = angle, opacity = 0.5 }
+        [ triangle_svg { x = x_i, y = y_i, angle = 0.0, opacity = 1.0 }
+        , triangle_svg { x = x_c, y = y_c, angle = angle_c, opacity = 0.5 }
+        , triangle_svg { x = x_b, y = y_b, angle = angle_b, opacity = 0.5 }
+        , triangle_svg { x = x_a, y = y_a, angle = angle, opacity = 0.5 }
         ]
     ]
 
@@ -334,19 +335,21 @@ triangles_paired theta =
     y_c = y_b - 1
     op_a = interpolate 0.5 1.0 theta
   in
-  [ triangle1 { x = x_i, y = y_i, angle = 0.0, opacity = 1.0 }
-  , triangle1 { x = x_c, y = y_c, angle = 90.0, opacity = op_a }
-  , triangle1 { x = x_b, y = y_b, angle = -90.0, opacity = op_a }
-  , triangle1 { x = x_a, y = y_a, angle = 180.0, opacity = op_a }
+  [ triangle_svg { x = x_i, y = y_i, angle = 0.0, opacity = 1.0 }
+  , triangle_svg { x = x_c, y = y_c, angle = 90.0, opacity = op_a }
+  , triangle_svg { x = x_b, y = y_b, angle = -90.0, opacity = op_a }
+  , triangle_svg { x = x_a, y = y_a, angle = 180.0, opacity = op_a }
   ]
 
 
-square1 data =
+square_svg data =
   let
+    side_length = String.fromFloat data.s
+    halfside = String.fromFloat (data.s/2.0)
     translate_text =
       "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
-      ") rotate(" ++ (String.fromFloat data.angle) ++ " 0,0)"
-    side_length = (String.fromFloat data.s)
+      ") rotate(" ++ (String.fromFloat data.angle) ++
+      " " ++ halfside ++ "," ++ halfside ++ ")"
   in
   rect
     [ width side_length
@@ -362,7 +365,7 @@ square1 data =
     []
 
 
-text1 data =
+text_svg data =
   text_
     [ x (String.fromFloat data.x)
     , y (String.fromFloat data.y)
@@ -404,26 +407,36 @@ scene_two model =
         , height "500"
         ]
         (
-          [ square1 { x = (260 - 30), y = (300 - 80 - 2), s = 80, angle = 0.0, opacity = ease_2, color = "#ffc0c0" }
-          , square1 { x = (260 + 80 + 3 - 30), y = 300, s = 60, angle = 0.0, opacity = ease_2, color = "#c0ffc0" }
+          -- Render squares before triangles so that triangle strokes are not obscured
+          [ square_svg { x = sq1.x, y = sq1.y, s = sq1.s, angle = 0.0, opacity = ease_2, color = "#ffc0c0" }
+          , square_svg { x = sq2.x, y = sq2.y, s = sq2.s, angle = 0.0, opacity = ease_2, color = "#c0ffc0" }
           ] ++
           ( triangles_paired ease_1 ) ++
-          [ text1 { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_3, fontsize = "20px" }
-          , text1 { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
+          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_3, fontsize = "20px" }
+          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
           ]
         )
     ]
 
 
 scene_three model =
-
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
     t = (toFloat diff) * 0.001
 
+    -- Calculate key times
+    t0 = 0.7       -- wipe in background
+    t1 = t0 + 1.2
+    t2 = t1 + 0.5  -- fade out squares
+    t3 = t2 + 0.8
+    t4 = t3 + 0.8  -- first two triangles
+    t5 = t4 + 1.0
+    t6 = t5 + 0.2  -- last triangle
+    t7 = t6 + 1.0
+
     -- Fade out squares
-    ease_1 = transition 0.5 1.5 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
-    op1 = interpolate 1.0 0.0 ease_1
+    ease_2 = transition t2 t3 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    op2 = interpolate 1.0 0.0 ease_2
     sq1 = { x = (260 - 30), y = (300 - 80 - 2), s = 80 }
     sq2 = { x = (sq1.x + 80 + 3), y = 300, s = 60 }
 
@@ -434,6 +447,34 @@ scene_three model =
              , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
     texts2 = [ Svg.text "a"
              , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+
+    -- Wipe in background (occurs before fade but references sq1)
+    sq3 = { x = (sq1.x - 30), y = (sq1.y - 30), s = (80 + 60 + 3 + 60) }
+    sq4 = { x = sq1.x, y = sq1.y, s = (80 + 60 + 2) }
+    ease_1 = transition t0 t1 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    sq5y = interpolate (sq3.y - 13) (sq3.y + sq3.s + 62) ease_1
+
+    -- Move triangles
+    x_i = 260 - 30
+    y_i = 300
+    --
+    x_a1 = x_i + 1
+    y_a1 = y_i - 1
+    --
+    x_b = x_i + (332-260)
+    y_b1 = y_i + (228-300) + 1
+    --
+    x_c1 = x_b - 1
+    y_c = y_b1 - 1
+    --
+    ease_3 = transition t4 t5 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    ease_4 = transition t6 t7 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    y_b = interpolate y_b1 (y_b1 + (60+1)) ease_3
+    x_c = interpolate x_c1 (x_c1 - (80+1)) ease_3
+    x_a = interpolate x_a1 (x_a1 + (60+1)) ease_4
+    y_a = interpolate y_a1 (y_a1 - (80+1)) ease_4
+    op_3 = 1.0
+
   in
   div
     []
@@ -442,12 +483,82 @@ scene_three model =
         , height "500"
         ]
         (
-          [ square1 { x = (260 - 30), y = (300 - 80 - 2), s = 80, angle = 0.0, opacity = op1, color = "#ffc0c0" }
-          , square1 { x = (260 + 80 + 3 - 30), y = 300, s = 60, angle = 0.0, opacity = op1, color = "#c0ffc0" }
+          -- Add background squares to front of list so that they are rendered furthest back
+          [ square_svg { x = sq3.x, y = sq3.y, s = sq3.s, angle = 0.0, opacity = 1.0, color = "#e0e0e0" }
+          , square_svg { x = sq4.x, y = sq4.y, s = sq4.s, angle = 0.0, opacity = 1.0, color = "white" }
+          , square_svg { x = sq3.x - 200, y = sq5y, s = sq3.s + 400, angle = -10.0, opacity = 1.0, color = "white" }
           ] ++
-          [ text1 { x = txt1.x, y = txt1.y, texts = texts1, opacity = op1, fontsize = "20px" }
-          , text1 { x = txt2.x, y = txt2.y, texts = texts2, opacity = op1, fontsize = "20px" }
+          -- Squares from previous animation are next on top
+          [ square_svg { x = sq1.x, y = sq1.y, s = sq1.s, angle = 0.0, opacity = op2, color = "#ffc0c0" }
+          , square_svg { x = sq2.x, y = sq2.y, s = sq2.s, angle = 0.0, opacity = op2, color = "#c0ffc0" }
           ] ++
-          ( triangles_paired 1.0 )
+          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = op2, fontsize = "20px" }
+          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = op2, fontsize = "20px" }
+          ] ++
+          -- Triangles are furthest forward
+          [ triangle_svg { x = x_i, y = y_i, angle = 0.0, opacity = op_3 }
+          , triangle_svg { x = x_c, y = y_c, angle = 90.0, opacity = op_3 }
+          , triangle_svg { x = x_b, y = y_b, angle = -90.0, opacity = op_3 }
+          , triangle_svg { x = x_a, y = y_a, angle = 180.0, opacity = op_3 }
+          ]
+        )
+    ]
+
+
+scene_four model =
+  let
+    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
+    t = (toFloat diff) * 0.001
+
+    -- squares are fixed in location
+    sq1 = { x = (260 - 30), y = (300 - 80 - 2), s = 80 }
+    sq3 = { x = (sq1.x - 30), y = (sq1.y - 30), s = (80 + 60 + 3 + 60) }
+    sq4 = { x = sq1.x, y = sq1.y, s = (80 + 60 + 2) }
+    ease_1 = transition 0.8 1.8 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    op5 = ease_1
+    angle5 = (atan ( 3.0/4.0 )) * 180 / pi
+    txt1 = { x = sq4.x + 70, y = sq4.y + 70 }
+    texts1 = [ Svg.text "c"
+             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+
+    -- new square
+    sq5 = { x = sq4.x + (70-50), y = sq4.y + (70-50), s = 100 }
+
+    -- triangles
+    x_i = 260 - 30
+    y_i = 300
+    --
+    x_a = x_i + 1 + 61
+    y_a = y_i - 1 - 81
+    --
+    x_b = x_i + (332-260)
+    y_b = y_i + (228-300) + 1 + 61
+    --
+    x_c = x_b - 1 - 81
+    y_c = y_b - 1 - 61
+    op_3 = 1.0
+
+  in
+  div
+    []
+    [ svg
+        [ width "600"
+        , height "500"
+        ]
+        (
+          -- Background furthest back
+          [ square_svg { x = sq3.x, y = sq3.y, s = sq3.s, angle = 0.0, opacity = 1.0, color = "#e0e0e0" }
+          , square_svg { x = sq4.x, y = sq4.y, s = sq4.s, angle = 0.0, opacity = 1.0, color = "white" }
+          ] ++
+          -- New square
+          [ square_svg { x = sq5.x, y = sq5.y, s = sq5.s, angle = angle5, opacity = op5, color = "yellow" }
+          , text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = op5, fontsize = "20px" }
+          ] ++
+          -- Triangles furthest forward
+          [ triangle_svg { x = x_i, y = y_i, angle = 0.0, opacity = op_3 }
+          , triangle_svg { x = x_c, y = y_c, angle = 90.0, opacity = op_3 }
+          , triangle_svg { x = x_b, y = y_b, angle = -90.0, opacity = op_3 }
+          , triangle_svg { x = x_a, y = y_a, angle = 180.0, opacity = op_3 }
+          ]
         )
     ]
