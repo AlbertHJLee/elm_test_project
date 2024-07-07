@@ -125,6 +125,7 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   let
+    -- Window dimensions
     window_width = 600
     window_height = 540
     window_half_stroke = 1
@@ -140,6 +141,9 @@ view model =
     panel_height = window_height + input_area_height + 4 * window_half_stroke
     panel_padding_visual = 30
     panel_padding = panel_padding_visual - 2 * window_half_stroke
+
+    -- Control Box
+    -- See viewControls function below
 
   in
   div
@@ -176,37 +180,43 @@ view model =
           div
             [ Attr.style "width" ((String.fromInt window_width) ++ "px")
             , Attr.style "height" "10px"
-            , Attr.style "background-color" "white"
             , Attr.style "margin" "auto"
             ]
             []
         ,
           -- Box holding main user controls
           div
-            [ Attr.style "width" "160px"
-            , Attr.style "background-color" "white"
-            , Attr.style "margin" "10px auto"
-            , Attr.style "text-align" "center"
-            ]
-            [ div
-                []
-                [ h2 [] [ text "Index" ]
-                ]
-            , div
-                [ Attr.style "width" "100%"
-                , Attr.style "height" "30px"
-                , Attr.style "margin-bottom" "10px"
-                , Attr.style "padding-top" "6px"
-                , Attr.style "align-items" "center"
-                , Attr.style "background-color" "white"
-                ]
-                [ text (String.fromInt model.index) ]
-            , button [ onClick Previous ] [ text "<" ]
-            , button [ onClick Next ] [ text ">" ]
-            , div [] []
-            , button [ onClick Reset] [ text "reset" ]
-            ]
+            []
+            [ viewControls model ]
         ]
+    ]
+
+
+viewControls : Model -> Html Msg
+viewControls model =
+  let
+    controls_font = "20px"
+  in
+  div
+    [ Attr.style "width" "160px"
+    , Attr.style "margin" "10px auto"
+    , Attr.style "text-align" "center"
+    , Attr.style "font-size" controls_font
+    , Attr.style "background-color" "white"
+    ]
+    [ div [] [ text "Index" ]
+    , div
+        [ Attr.style "width" "100%"
+        , Attr.style "height" "36px"
+        , Attr.style "display" "flex"
+        , Attr.style "align-items" "center"
+        , Attr.style "justify-content" "center"
+        ]
+        [ text (String.fromInt model.index) ]
+    , button [ onClick Previous, Attr.style "font-size" controls_font ] [ text "<" ]
+    , button [ onClick Next,     Attr.style "font-size" controls_font ] [ text ">" ]
+    , div [] []
+    , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
     ]
 
 
