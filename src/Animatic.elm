@@ -63,6 +63,7 @@ type Msg
   | SetTime Time.Posix
   | Tick Time.Posix
   | Reset
+  | Repeat
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -108,6 +109,11 @@ update msg model =
       ( { model
           | index = 0
         }
+      , Task.perform SetTime Time.now
+      )
+
+    Repeat ->
+      ( model
       , Task.perform SetTime Time.now
       )
 
@@ -214,6 +220,7 @@ viewControls model =
         ]
         [ text (String.fromInt model.index) ]
     , button [ onClick Previous, Attr.style "font-size" controls_font ] [ text "<" ]
+    , button [ onClick Repeat,   Attr.style "font-size" controls_font ] [ text "repeat" ]
     , button [ onClick Next,     Attr.style "font-size" controls_font ] [ text ">" ]
     , div [] []
     , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
@@ -328,6 +335,41 @@ ninety data =
   ]
 
 
+square_svg data =
+  let
+    side_length = String.fromFloat data.s
+    halfside = String.fromFloat (data.s/2.0)
+    transform_text =
+      "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
+      ") rotate(" ++ (String.fromFloat data.angle) ++
+      " " ++ halfside ++ "," ++ halfside ++ ")"
+  in
+  rect
+    [ width side_length
+    , height side_length
+    , transform transform_text
+    , fill data.color
+    , fillOpacity (String.fromFloat data.opacity)
+    , stroke data.color
+    , strokeOpacity (String.fromFloat data.opacity)
+    , strokeWidth "2"
+    , strokeLinejoin "round"
+    ]
+    []
+
+
+text_svg data =
+  text_
+    [ x (String.fromFloat data.x)
+    , y (String.fromFloat data.y)
+    , textAnchor "middle"        -- Center the text horizontally
+    , dominantBaseline "middle"  -- Center the text vertically
+    , fontSize data.fontsize
+    , opacity (String.fromFloat data.opacity)
+    ]
+    data.texts
+
+
 scene_zero : Model -> Html Msg
 scene_zero model =
   let
@@ -397,11 +439,23 @@ scene_one model =
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
     seconds_elapsed = (toFloat diff) * 0.001
 
+    -- Calculate times
+    t1 = 0.6
+    t2 = t1 + 1.4
+    t3 = t2
+    t4 = t3 + 1.0
+    t5 = t3 + 0.3
+    t6 = t5 + 1.0
+    t7 = t6 + 0.3
+    t8 = t7 + 2.0
+    t9 = t8
+    t10 = t9 + 0.2
+
     -- Rotate first triangle
     ease_1 =
       transition
-        0.2
-        1.6
+        t1
+        t2
         ( Ease.bezier 0.26 0.79 0.28 1.00 )
         seconds_elapsed
     x_i = 260
@@ -411,9 +465,9 @@ scene_one model =
     angle = interpolate 0.0 180.0 ease_1
 
     -- Move next two triangles into position
-    ease_2 = transition 1.6 2.6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
-    ease_3 = transition 1.9 2.9 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
-    ease_4 = transition 3.2 5.2 ( Ease.bezier 0.79 0.01 0.21 1.00 ) seconds_elapsed
+    ease_2 = transition t3 t4 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    ease_3 = transition t5 t6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) seconds_elapsed
+    ease_4 = transition t7 t8 ( Ease.bezier 0.79 0.01 0.21 1.00 ) seconds_elapsed
 
     -- First half of triangle 3's motion
     x_j = 274
@@ -440,6 +494,20 @@ scene_one model =
     angle_b = interpolate 0.0 -90.0 ease_4
     angle_c = interpolate 0.0 90.0 ease_4
 
+    -- Calculate annotation positions
+    side_a = 60.0
+    side_b = 80.0
+    xo = 260.0
+    yo = 300.0
+    xa = xo
+    ya = yo + (side_a / 2)
+    xb = xo + (side_b / 2)
+    yb = yo + side_a
+    xc = xo + (side_b / 2)
+    yc = yo + (side_a / 2)
+    anglec = ( atan (3.0/4.0) ) / pi * 180
+    ease_5 = transition t9 t10 ( Ease.bezier 0.79 0.01 0.21 1.00 ) seconds_elapsed
+
   in
   div
     [ ]
@@ -447,11 +515,19 @@ scene_one model =
         [ width "600"
         , height "500"
         ]
+        (
         [ triangle_svg { x = x_i, y = y_i, angle = 0.0, opacity = 1.0 }
         , triangle_svg { x = x_c, y = y_c, angle = angle_c, opacity = 0.5 }
         , triangle_svg { x = x_b, y = y_b, angle = angle_b, opacity = 0.5 }
         , triangle_svg { x = x_a, y = y_a, angle = angle, opacity = 0.5 }
-        ]
+        ] ++
+        ( congruency_marks { x = xa, y = ya, angle =  -90.0, opacity = 1.0, n = 1 } ) ++
+        ( congruency_marks { x = xb, y = yb, angle =    0.0, opacity = 1.0, n = 2 } ) ++
+        ( congruency_marks { x = xc, y = yc, angle = anglec, opacity = 1.0, n = 3 } ) ++
+        ( ninety { x = xo,         y = yo + side_a, angle =   0.0, opacity = 1.0 } ) ++
+        ( ninety { x = xo + side_b + 1, y = yo - 1, angle = -90.0, opacity = ease_5 } ) ++
+        ( ninety { x = xo + side_b + 1, y = yo - 1, angle =  90.0, opacity = ease_5 } )
+        )
     ]
 
 
@@ -473,41 +549,6 @@ triangles_paired theta =
   , triangle_svg { x = x_b, y = y_b, angle = -90.0, opacity = op_a }
   , triangle_svg { x = x_a, y = y_a, angle = 180.0, opacity = op_a }
   ]
-
-
-square_svg data =
-  let
-    side_length = String.fromFloat data.s
-    halfside = String.fromFloat (data.s/2.0)
-    transform_text =
-      "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
-      ") rotate(" ++ (String.fromFloat data.angle) ++
-      " " ++ halfside ++ "," ++ halfside ++ ")"
-  in
-  rect
-    [ width side_length
-    , height side_length
-    , transform transform_text
-    , fill data.color
-    , fillOpacity (String.fromFloat data.opacity)
-    , stroke data.color
-    , strokeOpacity (String.fromFloat data.opacity)
-    , strokeWidth "2"
-    , strokeLinejoin "round"
-    ]
-    []
-
-
-text_svg data =
-  text_
-    [ x (String.fromFloat data.x)
-    , y (String.fromFloat data.y)
-    , textAnchor "middle"        -- Center the text horizontally
-    , dominantBaseline "middle"  -- Center the text vertically
-    , fontSize data.fontsize
-    , opacity (String.fromFloat data.opacity)
-    ]
-    data.texts
 
 
 scene_two model =
