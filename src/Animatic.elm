@@ -259,13 +259,13 @@ interpolate x1 x2 theta =
 
 triangle_svg data =
   let
-    translate_text =
+    transform_text =
       "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
       ") rotate(" ++ (String.fromFloat data.angle) ++ " 40,30)"
   in
   polygon
     [ points "0,0 80,60 0,60"
-    , transform translate_text
+    , transform transform_text
     , fill "#c0c0ff"
     , fillOpacity (String.fromFloat data.opacity)
     , stroke "#0000f0"
@@ -276,13 +276,70 @@ triangle_svg data =
     []
 
 
+congruency_marks data =
+  let
+    xc = data.x
+    yc = data.y
+    angle = data.angle
+    halflength = 8
+    transform_text =
+      "rotate(" ++ (String.fromFloat data.angle) ++
+      " " ++ (String.fromFloat xc) ++ "," ++ (String.fromFloat yc) ++ ")"
+  in
+  line
+    [ x1 (String.fromFloat xc)
+    , y1 (String.fromFloat (yc + halflength))
+    , x2 (String.fromFloat xc)
+    , y2 (String.fromFloat (yc - halflength))
+    , stroke "#0000f0"
+    , strokeWidth "2"
+    , opacity (String.fromFloat data.opacity)
+    , transform transform_text
+    ]
+    []
+
+
 scene_zero : Model -> Html Msg
 scene_zero model =
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
     t = (toFloat diff) * 0.001
+
+    -- Calculate times
+    t1 = 0.6
+    t2 = t1 + 0.4
+    t3 = t2 + 0.1  -- fade in annotations
+    t4 = t3 + 0.2
+
     -- Fade in first triangle
-    ease_1 = transition 0.4 2.0 ( \theta -> theta ) t
+    ease_1 = transition t1 t2 ( \theta -> theta ) t
+
+    -- Calculate annotation positions
+    side_a = 60.0
+    side_b = 80.0
+    xo = 260.0
+    yo = 300.0
+    xa = xo
+    ya = yo + (side_a / 2)
+    xb = xo + (side_b / 2)
+    yb = yo + side_a
+    xc = xo + (side_b / 2)
+    yc = yo + (side_a / 2)
+    anglec = ( atan (3.0/4.0) ) / pi * 180
+
+    dt = 0.3
+    ease_2 = transition t3 t4 ( \theta -> theta ) t
+    ease_3 = transition (t3 + dt) (t4 + dt) ( \theta -> theta ) t
+    ease_4 = transition (t3 + 2*dt) (t4 + 2*dt) ( \theta -> theta ) t
+
+    txt_spacing = 24
+    txt1 = { x = xa - txt_spacing, y = ya }
+    texts1 = [ text "a" ]
+    txt2 = { x = xb, y = yb + txt_spacing }
+    texts2 = [ text "b" ]
+    txt3 = { x = xc + txt_spacing * (3/5), y = yc - txt_spacing * (4/5) }
+    texts3 = [ text "c" ]
+
   in
   div
     []
@@ -291,6 +348,12 @@ scene_zero model =
       , height "500"
       ]
       [ triangle_svg { x = 260, y = 300, angle = 0.0, opacity = ease_1 }
+      , congruency_marks { x = xa, y = ya, angle =  -90.0, opacity = ease_2 }
+      , congruency_marks { x = xb, y = yb, angle =    0.0, opacity = ease_3 }
+      , congruency_marks { x = xc, y = yc, angle = anglec, opacity = ease_4 }
+      , text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_2, fontsize = "20px" }
+      , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
+      , text_svg { x = txt3.x, y = txt3.y, texts = texts3, opacity = ease_4, fontsize = "20px" }
       ]
     ]
 
@@ -384,7 +447,7 @@ square_svg data =
   let
     side_length = String.fromFloat data.s
     halfside = String.fromFloat (data.s/2.0)
-    translate_text =
+    transform_text =
       "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++
       ") rotate(" ++ (String.fromFloat data.angle) ++
       " " ++ halfside ++ "," ++ halfside ++ ")"
@@ -392,7 +455,7 @@ square_svg data =
   rect
     [ width side_length
     , height side_length
-    , transform translate_text
+    , transform transform_text
     , fill data.color
     , fillOpacity (String.fromFloat data.opacity)
     , stroke data.color
