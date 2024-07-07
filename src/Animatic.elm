@@ -298,17 +298,34 @@ congruency_marks data =
     transform_text =
       "rotate(" ++ (String.fromFloat data.angle) ++
       " " ++ (String.fromFloat xc) ++ "," ++ (String.fromFloat yc) ++ ")"
-    -- mark_list = [ xc - 4, xc, xc + 4]
+
+    -- Generate list of x-coordinates for n marks
     mark_spacing = 4
     offset = mark_spacing * ( data.n / 2 + 0.5 )
     mark_list =
       ( List.range 1 (round data.n) )
           |> ( List.map (\p -> (toFloat p) * mark_spacing - offset + xc ) )
   in
+  -- Pipe list of x-coordinates into function for drawing a single mark
   ( List.map
       ( \xi -> ( one_line xi (yc + halflength) xi (yc - halflength) data.opacity transform_text ) )
       mark_list
   )
+
+
+ninety data =
+  let
+    xc = data.x
+    yc = data.y
+    angle = data.angle
+    transform_text =
+      "rotate(" ++ (String.fromFloat data.angle) ++
+      " " ++ (String.fromFloat xc) ++ "," ++ (String.fromFloat yc) ++ ")"
+    length = 10
+  in
+  [ ( one_line (xc + length) yc (xc + length) (yc - length - 1) data.opacity transform_text )
+  , ( one_line xc (yc - length) (xc + length + 1) (yc - length) data.opacity transform_text )
+  ]
 
 
 scene_zero : Model -> Html Msg
@@ -360,10 +377,11 @@ scene_zero model =
       , height "500"
       ]
       (
-      [ triangle_svg { x = 260, y = 300, angle = 0.0, opacity = ease_1 } ] ++
+      [ triangle_svg { x = xo, y = yo, angle = 0.0, opacity = ease_1 } ] ++
       ( congruency_marks { x = xa, y = ya, angle =  -90.0, opacity = ease_2, n = 1 } ) ++
       ( congruency_marks { x = xb, y = yb, angle =    0.0, opacity = ease_3, n = 2 } ) ++
       ( congruency_marks { x = xc, y = yc, angle = anglec, opacity = ease_4, n = 3 } ) ++
+      ( ninety { x = xo, y = yo + side_a, angle = 0.0, opacity = ease_1 } ) ++
       [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_2, fontsize = "20px" }
       , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
       , text_svg { x = txt3.x, y = txt3.y, texts = texts3, opacity = ease_4, fontsize = "20px" }
