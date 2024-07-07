@@ -38,6 +38,7 @@ type alias Model =
   , max_scenes : Int
   , click_time : Time.Posix
   , current_time : Time.Posix
+  , query_answered : Bool
   }
 
 
@@ -48,6 +49,7 @@ init _ =
       4
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
+      False
   , Task.perform SetTime Time.now
   )
 
@@ -112,6 +114,8 @@ update msg model =
       , Task.perform SetTime Time.now
       )
 
+    -- Users may want to view an animation again without having to click Next or Prevous.
+    -- This is especially helpful if they did not fully digest the first time around.
     Repeat ->
       ( model
       , Task.perform SetTime Time.now
@@ -222,7 +226,7 @@ viewControls model =
     , button [ onClick Previous, Attr.style "font-size" controls_font ] [ text "<" ]
     , button [ onClick Repeat,   Attr.style "font-size" controls_font ] [ text "repeat" ]
     , button [ onClick Next,     Attr.style "font-size" controls_font ] [ text ">" ]
-    , div [] []
+    , div [ Attr.style "height" "10px" ] []
     , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
     ]
 
@@ -234,7 +238,9 @@ viewScene model =
     [ case model.index of
         0 -> scene_zero model
         1 -> scene_one model
-        2 -> scene_two model
+        2 ->
+             if model.query_answered then scene_two_b model
+             else scene_two_a model
         3 -> scene_three model
         4 -> scene_four model
         _ -> div [] []
@@ -551,7 +557,7 @@ triangles_paired theta =
   ]
 
 
-scene_two model =
+scene_two_a model =
 
   let
     diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
@@ -586,6 +592,46 @@ scene_two model =
           , square_svg { x = sq2.x, y = sq2.y, s = sq2.s, angle = 0.0, opacity = ease_2, color = "#c0ffc0" }
           ] ++
           ( triangles_paired ease_1 ) ++
+          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_3, fontsize = "20px" }
+          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
+          ]
+        )
+    ]
+
+
+scene_two_b model =
+
+  let
+    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
+    t = (toFloat diff) * 0.001
+
+    -- Squares from scene_two_a
+    sq1 = { x = (260 - 30), y = (300 - 80 - 2), s = 80 }
+    sq2 = { x = (sq1.x + 80 + 3), y = 300, s = 60 }
+
+    -- Fade in text
+    t1 = 0.5
+    t2 = t1 + 0.4
+    ease_3 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    txt1 = { x = (sq1.x + sq1.s / 2.0), y = (sq1.y + sq1.s / 2.0) }
+    txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
+    texts1 = [ Svg.text "b"
+             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+    texts2 = [ Svg.text "a"
+             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+  in
+  div
+    []
+    [ svg
+        [ width "600"
+        , height "500"
+        ]
+        (
+          -- Render squares before triangles so that triangle strokes are not obscured
+          [ square_svg { x = sq1.x, y = sq1.y, s = sq1.s, angle = 0.0, opacity = 1.0, color = "#ffc0c0" }
+          , square_svg { x = sq2.x, y = sq2.y, s = sq2.s, angle = 0.0, opacity = 1.0, color = "#c0ffc0" }
+          ] ++
+          ( triangles_paired 1.0 ) ++
           [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_3, fontsize = "20px" }
           , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
           ]
