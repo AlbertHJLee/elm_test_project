@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Button</title>
+  <title>Animatic</title>
   <style>body { padding: 0; margin: 0; }</style>
 </head>
 
@@ -4384,7 +4384,52 @@ function _Browser_load(url)
 		}
 	}));
 }
-var $author$project$Button$init = 0;
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5173,44 +5218,228 @@ var $elm$core$Task$perform = F2(
 			$elm$core$Task$Perform(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $elm$browser$Browser$sandbox = function (impl) {
-	return _Browser_element(
-		{
-			init: function (_v0) {
-				return _Utils_Tuple2(impl.init, $elm$core$Platform$Cmd$none);
-			},
-			subscriptions: function (_v1) {
-				return $elm$core$Platform$Sub$none;
-			},
-			update: F2(
-				function (msg, model) {
-					return _Utils_Tuple2(
-						A2(impl.update, msg, model),
-						$elm$core$Platform$Cmd$none);
-				}),
-			view: impl.view
-		});
+var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Animatic$Model = F5(
+	function (index, max_scenes, click_time, current_time, query_answered) {
+		return {click_time: click_time, current_time: current_time, index: index, max_scenes: max_scenes, query_answered: query_answered};
+	});
+var $author$project$Animatic$SetTime = function (a) {
+	return {$: 'SetTime', a: a};
 };
-var $author$project$Button$update = F2(
-	function (msg, model) {
-		switch (msg.$) {
-			case 'Increment':
-				return model + 1;
-			case 'Decrement':
-				return model - 1;
-			default:
-				return $author$project$Button$init;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $author$project$Animatic$init = function (_v0) {
+	return _Utils_Tuple2(
+		A5(
+			$author$project$Animatic$Model,
+			0,
+			4,
+			$elm$time$Time$millisToPosix(0),
+			$elm$time$Time$millisToPosix(0),
+			false),
+		A2($elm$core$Task$perform, $author$project$Animatic$SetTime, $elm$time$Time$now));
+};
+var $author$project$Animatic$Tick = function (a) {
+	return {$: 'Tick', a: a};
+};
+var $elm$browser$Browser$AnimationManager$Time = function (a) {
+	return {$: 'Time', a: a};
+};
+var $elm$browser$Browser$AnimationManager$State = F3(
+	function (subs, request, oldTime) {
+		return {oldTime: oldTime, request: request, subs: subs};
+	});
+var $elm$browser$Browser$AnimationManager$init = $elm$core$Task$succeed(
+	A3($elm$browser$Browser$AnimationManager$State, _List_Nil, $elm$core$Maybe$Nothing, 0));
+var $elm$core$Process$kill = _Scheduler_kill;
+var $elm$browser$Browser$AnimationManager$now = _Browser_now(_Utils_Tuple0);
+var $elm$browser$Browser$AnimationManager$rAF = _Browser_rAF(_Utils_Tuple0);
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$core$Process$spawn = _Scheduler_spawn;
+var $elm$browser$Browser$AnimationManager$onEffects = F3(
+	function (router, subs, _v0) {
+		var request = _v0.request;
+		var oldTime = _v0.oldTime;
+		var _v1 = _Utils_Tuple2(request, subs);
+		if (_v1.a.$ === 'Nothing') {
+			if (!_v1.b.b) {
+				var _v2 = _v1.a;
+				return $elm$browser$Browser$AnimationManager$init;
+			} else {
+				var _v4 = _v1.a;
+				return A2(
+					$elm$core$Task$andThen,
+					function (pid) {
+						return A2(
+							$elm$core$Task$andThen,
+							function (time) {
+								return $elm$core$Task$succeed(
+									A3(
+										$elm$browser$Browser$AnimationManager$State,
+										subs,
+										$elm$core$Maybe$Just(pid),
+										time));
+							},
+							$elm$browser$Browser$AnimationManager$now);
+					},
+					$elm$core$Process$spawn(
+						A2(
+							$elm$core$Task$andThen,
+							$elm$core$Platform$sendToSelf(router),
+							$elm$browser$Browser$AnimationManager$rAF)));
+			}
+		} else {
+			if (!_v1.b.b) {
+				var pid = _v1.a.a;
+				return A2(
+					$elm$core$Task$andThen,
+					function (_v3) {
+						return $elm$browser$Browser$AnimationManager$init;
+					},
+					$elm$core$Process$kill(pid));
+			} else {
+				return $elm$core$Task$succeed(
+					A3($elm$browser$Browser$AnimationManager$State, subs, request, oldTime));
+			}
 		}
 	});
-var $author$project$Button$Decrement = {$: 'Decrement'};
-var $author$project$Button$Increment = {$: 'Increment'};
-var $author$project$Button$Reset = {$: 'Reset'};
-var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$browser$Browser$AnimationManager$onSelfMsg = F3(
+	function (router, newTime, _v0) {
+		var subs = _v0.subs;
+		var oldTime = _v0.oldTime;
+		var send = function (sub) {
+			if (sub.$ === 'Time') {
+				var tagger = sub.a;
+				return A2(
+					$elm$core$Platform$sendToApp,
+					router,
+					tagger(
+						$elm$time$Time$millisToPosix(newTime)));
+			} else {
+				var tagger = sub.a;
+				return A2(
+					$elm$core$Platform$sendToApp,
+					router,
+					tagger(newTime - oldTime));
+			}
+		};
+		return A2(
+			$elm$core$Task$andThen,
+			function (pid) {
+				return A2(
+					$elm$core$Task$andThen,
+					function (_v1) {
+						return $elm$core$Task$succeed(
+							A3(
+								$elm$browser$Browser$AnimationManager$State,
+								subs,
+								$elm$core$Maybe$Just(pid),
+								newTime));
+					},
+					$elm$core$Task$sequence(
+						A2($elm$core$List$map, send, subs)));
+			},
+			$elm$core$Process$spawn(
+				A2(
+					$elm$core$Task$andThen,
+					$elm$core$Platform$sendToSelf(router),
+					$elm$browser$Browser$AnimationManager$rAF)));
+	});
+var $elm$browser$Browser$AnimationManager$Delta = function (a) {
+	return {$: 'Delta', a: a};
+};
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$browser$Browser$AnimationManager$subMap = F2(
+	function (func, sub) {
+		if (sub.$ === 'Time') {
+			var tagger = sub.a;
+			return $elm$browser$Browser$AnimationManager$Time(
+				A2($elm$core$Basics$composeL, func, tagger));
+		} else {
+			var tagger = sub.a;
+			return $elm$browser$Browser$AnimationManager$Delta(
+				A2($elm$core$Basics$composeL, func, tagger));
+		}
+	});
+_Platform_effectManagers['Browser.AnimationManager'] = _Platform_createManager($elm$browser$Browser$AnimationManager$init, $elm$browser$Browser$AnimationManager$onEffects, $elm$browser$Browser$AnimationManager$onSelfMsg, 0, $elm$browser$Browser$AnimationManager$subMap);
+var $elm$browser$Browser$AnimationManager$subscription = _Platform_leaf('Browser.AnimationManager');
+var $elm$browser$Browser$AnimationManager$onAnimationFrame = function (tagger) {
+	return $elm$browser$Browser$AnimationManager$subscription(
+		$elm$browser$Browser$AnimationManager$Time(tagger));
+};
+var $elm$browser$Browser$Events$onAnimationFrame = $elm$browser$Browser$AnimationManager$onAnimationFrame;
+var $author$project$Animatic$subscriptions = function (model) {
+	return $elm$browser$Browser$Events$onAnimationFrame($author$project$Animatic$Tick);
+};
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Animatic$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'Next':
+				return _Utils_eq(model.index, model.max_scenes) ? _Utils_Tuple2(model, $elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{index: model.index + 1}),
+					A2($elm$core$Task$perform, $author$project$Animatic$SetTime, $elm$time$Time$now));
+			case 'Previous':
+				return (!model.index) ? _Utils_Tuple2(model, $elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{index: model.index - 1}),
+					A2($elm$core$Task$perform, $author$project$Animatic$SetTime, $elm$time$Time$now));
+			case 'SetTime':
+				var newTime = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{click_time: newTime, current_time: newTime}),
+					$elm$core$Platform$Cmd$none);
+			case 'Tick':
+				var newTime = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{current_time: newTime}),
+					$elm$core$Platform$Cmd$none);
+			case 'Reset':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{index: 0}),
+					A2($elm$core$Task$perform, $author$project$Animatic$SetTime, $elm$time$Time$now));
+			default:
+				return _Utils_Tuple2(
+					model,
+					A2($elm$core$Task$perform, $author$project$Animatic$SetTime, $elm$time$Time$now));
+		}
+	});
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$Animatic$Next = {$: 'Next'};
+var $author$project$Animatic$Previous = {$: 'Previous'};
+var $author$project$Animatic$Repeat = {$: 'Repeat'};
+var $author$project$Animatic$Reset = {$: 'Reset'};
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -5230,46 +5459,88 @@ var $elm$html$Html$Events$onClick = function (msg) {
 };
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Button$view = function (model) {
+var $author$project$Animatic$viewControls = function (model) {
+	var controls_font = '20px';
 	return A2(
 		$elm$html$Html$div,
-		_List_Nil,
 		_List_fromArray(
 			[
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Button$Decrement)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('-')
-					])),
+				A2($elm$html$Html$Attributes$style, 'width', '160px'),
+				A2($elm$html$Html$Attributes$style, 'margin', '10px auto'),
+				A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+				A2($elm$html$Html$Attributes$style, 'font-size', controls_font),
+				A2($elm$html$Html$Attributes$style, 'background-color', 'white')
+			]),
+		_List_fromArray(
+			[
 				A2(
 				$elm$html$Html$div,
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text(
-						$elm$core$String$fromInt(model))
+						$elm$html$Html$text('Index')
 					])),
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Button$Increment)
+						A2($elm$html$Html$Attributes$style, 'width', '100%'),
+						A2($elm$html$Html$Attributes$style, 'height', '36px'),
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
+						A2($elm$html$Html$Attributes$style, 'justify-content', 'center')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('+')
+						$elm$html$Html$text(
+						$elm$core$String$fromInt(model.index))
 					])),
-				A2($elm$html$Html$div, _List_Nil, _List_Nil),
 				A2(
 				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Button$Reset)
+						$elm$html$Html$Events$onClick($author$project$Animatic$Previous),
+						A2($elm$html$Html$Attributes$style, 'font-size', controls_font)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('<')
+					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Animatic$Repeat),
+						A2($elm$html$Html$Attributes$style, 'font-size', controls_font)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('repeat')
+					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Animatic$Next),
+						A2($elm$html$Html$Attributes$style, 'font-size', controls_font)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('>')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'height', '10px')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Animatic$Reset),
+						A2($elm$html$Html$Attributes$style, 'font-size', controls_font)
 					]),
 				_List_fromArray(
 					[
@@ -5277,12 +5548,997 @@ var $author$project$Button$view = function (model) {
 					]))
 			]));
 };
-var $author$project$Button$main = $elm$browser$Browser$sandbox(
-	{init: $author$project$Button$init, update: $author$project$Button$update, view: $author$project$Button$view});
-_Platform_export({'Button':{'init':$author$project$Button$main(
+var $elm$core$Basics$atan = _Basics_atan;
+var $elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(xs);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $elm_community$easing_functions$Ease$bezier = F5(
+	function (x1, y1, x2, y2, time) {
+		var pair = F4(
+			function (interpolate, _v2, _v3, v) {
+				var a0 = _v2.a;
+				var b0 = _v2.b;
+				var a1 = _v3.a;
+				var b1 = _v3.b;
+				return _Utils_Tuple2(
+					A3(interpolate, a0, a1, v),
+					A3(interpolate, b0, b1, v));
+			});
+		var lerp = F3(
+			function (from, to, v) {
+				return from + ((to - from) * v);
+			});
+		var casteljau = function (ps) {
+			if (ps.b && (!ps.b.b)) {
+				var _v1 = ps.a;
+				var x = _v1.a;
+				var y = _v1.b;
+				return y;
+			} else {
+				var xs = ps;
+				return casteljau(
+					A3(
+						$elm$core$List$map2,
+						F2(
+							function (x, y) {
+								return A4(pair, lerp, x, y, time);
+							}),
+						xs,
+						A2(
+							$elm$core$Maybe$withDefault,
+							_List_Nil,
+							$elm$core$List$tail(xs))));
+			}
+		};
+		return casteljau(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(0, 0),
+					_Utils_Tuple2(x1, y1),
+					_Utils_Tuple2(x2, y2),
+					_Utils_Tuple2(1, 1)
+				]));
+	});
+var $elm$svg$Svg$Attributes$dy = _VirtualDom_attribute('dy');
+var $elm$svg$Svg$Attributes$fontSize = _VirtualDom_attribute('font-size');
+var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Basics$pi = _Basics_pi;
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
+var $elm$svg$Svg$Attributes$fillOpacity = _VirtualDom_attribute('fill-opacity');
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
+var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
+var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
+var $elm$svg$Svg$Attributes$strokeLinejoin = _VirtualDom_attribute('stroke-linejoin');
+var $elm$svg$Svg$Attributes$strokeOpacity = _VirtualDom_attribute('stroke-opacity');
+var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
+var $elm$svg$Svg$Attributes$transform = _VirtualDom_attribute('transform');
+var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
+var $author$project$Animatic$square_svg = function (data) {
+	var side_length = $elm$core$String$fromFloat(data.s);
+	var halfside = $elm$core$String$fromFloat(data.s / 2.0);
+	var transform_text = 'translate(' + ($elm$core$String$fromFloat(data.x) + (',' + ($elm$core$String$fromFloat(data.y) + (') rotate(' + ($elm$core$String$fromFloat(data.angle) + (' ' + (halfside + (',' + (halfside + ')')))))))));
+	return A2(
+		$elm$svg$Svg$rect,
+		_List_fromArray(
+			[
+				$elm$svg$Svg$Attributes$width(side_length),
+				$elm$svg$Svg$Attributes$height(side_length),
+				$elm$svg$Svg$Attributes$transform(transform_text),
+				$elm$svg$Svg$Attributes$fill(data.color),
+				$elm$svg$Svg$Attributes$fillOpacity(
+				$elm$core$String$fromFloat(data.opacity)),
+				$elm$svg$Svg$Attributes$stroke(data.color),
+				$elm$svg$Svg$Attributes$strokeOpacity(
+				$elm$core$String$fromFloat(data.opacity)),
+				$elm$svg$Svg$Attributes$strokeWidth('2'),
+				$elm$svg$Svg$Attributes$strokeLinejoin('round')
+			]),
+		_List_Nil);
+};
+var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
+var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
+var $elm$svg$Svg$Attributes$opacity = _VirtualDom_attribute('opacity');
+var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
+var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
+var $elm$svg$Svg$Attributes$x = _VirtualDom_attribute('x');
+var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
+var $author$project$Animatic$text_svg = function (data) {
+	return A2(
+		$elm$svg$Svg$text_,
+		_List_fromArray(
+			[
+				$elm$svg$Svg$Attributes$x(
+				$elm$core$String$fromFloat(data.x)),
+				$elm$svg$Svg$Attributes$y(
+				$elm$core$String$fromFloat(data.y)),
+				$elm$svg$Svg$Attributes$textAnchor('middle'),
+				$elm$svg$Svg$Attributes$dominantBaseline('middle'),
+				$elm$svg$Svg$Attributes$fontSize(data.fontsize),
+				$elm$svg$Svg$Attributes$opacity(
+				$elm$core$String$fromFloat(data.opacity))
+			]),
+		data.texts);
+};
+var $author$project$Animatic$transition = F4(
+	function (t1, t2, fxn, t) {
+		var duration = t2 - t1;
+		var ease_input = (_Utils_cmp(t, t1) < 0) ? 0.0 : ((_Utils_cmp(t, t2) < 0) ? ((t - t1) / duration) : 1.0);
+		var ease_output = fxn(ease_input);
+		return ease_output;
+	});
+var $elm$svg$Svg$Attributes$points = _VirtualDom_attribute('points');
+var $elm$svg$Svg$polygon = $elm$svg$Svg$trustedNode('polygon');
+var $author$project$Animatic$triangle_svg = function (data) {
+	var transform_text = 'translate(' + ($elm$core$String$fromFloat(data.x) + (',' + ($elm$core$String$fromFloat(data.y) + (') rotate(' + ($elm$core$String$fromFloat(data.angle) + ' 40,30)')))));
+	return A2(
+		$elm$svg$Svg$polygon,
+		_List_fromArray(
+			[
+				$elm$svg$Svg$Attributes$points('0,0 80,60 0,60'),
+				$elm$svg$Svg$Attributes$transform(transform_text),
+				$elm$svg$Svg$Attributes$fill('#c0c0ff'),
+				$elm$svg$Svg$Attributes$fillOpacity(
+				$elm$core$String$fromFloat(data.opacity)),
+				$elm$svg$Svg$Attributes$stroke('#0000f0'),
+				$elm$svg$Svg$Attributes$strokeWidth('2'),
+				$elm$svg$Svg$Attributes$strokeOpacity(
+				$elm$core$String$fromFloat(data.opacity)),
+				$elm$svg$Svg$Attributes$strokeLinejoin('round')
+			]),
+		_List_Nil);
+};
+var $elm$svg$Svg$tspan = $elm$svg$Svg$trustedNode('tspan');
+var $author$project$Animatic$scene_four = function (model) {
+	var y_i = 300;
+	var y_b = ((y_i + (228 - 300)) + 1) + 61;
+	var y_c = (y_b - 1) - 61;
+	var y_a = (y_i - 1) - 81;
+	var x_i = 260 - 30;
+	var x_b = x_i + (332 - 260);
+	var x_c = (x_b - 1) - 81;
+	var x_a = (x_i + 1) + 61;
+	var texts1 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('c'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var sq1 = {s: 80, x: 260 - 30, y: (300 - 80) - 2};
+	var sq3 = {s: ((80 + 60) + 3) + 60, x: sq1.x - 30, y: sq1.y - 30};
+	var sq4 = {s: (80 + 60) + 2, x: sq1.x, y: sq1.y};
+	var sq5 = {s: 100, x: sq4.x + (70 - 50), y: sq4.y + (70 - 50)};
+	var txt1 = {x: sq4.x + 70, y: sq4.y + 70};
+	var op_3 = 1.0;
+	var diff = $elm$time$Time$posixToMillis(model.current_time) - $elm$time$Time$posixToMillis(model.click_time);
+	var t = diff * 0.001;
+	var ease_1 = A4(
+		$author$project$Animatic$transition,
+		0.8,
+		1.8,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var op5 = ease_1;
+	var angle5 = ($elm$core$Basics$atan(3.0 / 4.0) * 180) / $elm$core$Basics$pi;
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$svg$Svg$svg,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$width('600'),
+						$elm$svg$Svg$Attributes$height('500')
+					]),
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: '#e0e0e0', opacity: 1.0, s: sq3.s, x: sq3.x, y: sq3.y}),
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: 'white', opacity: 1.0, s: sq4.s, x: sq4.x, y: sq4.y})
+						]),
+					_Utils_ap(
+						_List_fromArray(
+							[
+								$author$project$Animatic$square_svg(
+								{angle: angle5, color: 'yellow', opacity: op5, s: sq5.s, x: sq5.x, y: sq5.y}),
+								$author$project$Animatic$text_svg(
+								{fontsize: '20px', opacity: op5, texts: texts1, x: txt1.x, y: txt1.y})
+							]),
+						_List_fromArray(
+							[
+								$author$project$Animatic$triangle_svg(
+								{angle: 0.0, opacity: op_3, x: x_i, y: y_i}),
+								$author$project$Animatic$triangle_svg(
+								{angle: 90.0, opacity: op_3, x: x_c, y: y_c}),
+								$author$project$Animatic$triangle_svg(
+								{angle: -90.0, opacity: op_3, x: x_b, y: y_b}),
+								$author$project$Animatic$triangle_svg(
+								{angle: 180.0, opacity: op_3, x: x_a, y: y_a})
+							]))))
+			]));
+};
+var $elm$svg$Svg$line = $elm$svg$Svg$trustedNode('line');
+var $elm$svg$Svg$Attributes$x1 = _VirtualDom_attribute('x1');
+var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
+var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
+var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
+var $author$project$Animatic$one_line = F6(
+	function (xa, ya, xb, yb, opac, transform_text) {
+		return A2(
+			$elm$svg$Svg$line,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$x1(
+					$elm$core$String$fromFloat(xa)),
+					$elm$svg$Svg$Attributes$y1(
+					$elm$core$String$fromFloat(ya)),
+					$elm$svg$Svg$Attributes$x2(
+					$elm$core$String$fromFloat(xb)),
+					$elm$svg$Svg$Attributes$y2(
+					$elm$core$String$fromFloat(yb)),
+					$elm$svg$Svg$Attributes$stroke('#0000f0'),
+					$elm$svg$Svg$Attributes$strokeWidth('2'),
+					$elm$svg$Svg$Attributes$opacity(
+					$elm$core$String$fromFloat(opac)),
+					$elm$svg$Svg$Attributes$transform(transform_text)
+				]),
+			_List_Nil);
+	});
+var $elm$core$Basics$round = _Basics_round;
+var $author$project$Animatic$congruency_marks = function (data) {
+	var yc = data.y;
+	var xc = data.x;
+	var transform_text = 'rotate(' + ($elm$core$String$fromFloat(data.angle) + (' ' + ($elm$core$String$fromFloat(xc) + (',' + ($elm$core$String$fromFloat(yc) + ')')))));
+	var mark_spacing = 4;
+	var offset = mark_spacing * ((data.n / 2) + 0.5);
+	var mark_list = A2(
+		$elm$core$List$map,
+		function (p) {
+			return ((p * mark_spacing) - offset) + xc;
+		},
+		A2(
+			$elm$core$List$range,
+			1,
+			$elm$core$Basics$round(data.n)));
+	var halflength = 8;
+	var angle = data.angle;
+	return A2(
+		$elm$core$List$map,
+		function (xi) {
+			return A6($author$project$Animatic$one_line, xi, yc + halflength, xi, yc - halflength, data.opacity, transform_text);
+		},
+		mark_list);
+};
+var $author$project$Animatic$interpolate = F3(
+	function (x1, x2, theta) {
+		return x1 + ((x2 - x1) * theta);
+	});
+var $author$project$Animatic$ninety = function (data) {
+	var yc = data.y;
+	var xc = data.x;
+	var transform_text = 'rotate(' + ($elm$core$String$fromFloat(data.angle) + (' ' + ($elm$core$String$fromFloat(xc) + (',' + ($elm$core$String$fromFloat(yc) + ')')))));
+	var length = 10;
+	var angle = data.angle;
+	return _List_fromArray(
+		[
+			A6($author$project$Animatic$one_line, xc + length, yc, xc + length, (yc - length) - 1, data.opacity, transform_text),
+			A6($author$project$Animatic$one_line, xc, yc - length, (xc + length) + 1, yc - length, data.opacity, transform_text)
+		]);
+};
+var $author$project$Animatic$scene_one = function (model) {
+	var yo = 300.0;
+	var y_l = 228;
+	var y_k = 170;
+	var y_j = 160;
+	var y_i = 300;
+	var xo = 260.0;
+	var xa = xo;
+	var x_l = 332;
+	var x_k = 170;
+	var x_j = 274;
+	var x_i = 260;
+	var t1 = 0.6;
+	var t2 = t1 + 1.4;
+	var t3 = t2;
+	var t4 = t3 + 1.0;
+	var t5 = t3 + 0.3;
+	var t6 = t5 + 1.0;
+	var t7 = t6 + 0.3;
+	var t8 = t7 + 2.0;
+	var t9 = t8;
+	var t10 = t9 + 0.2;
+	var side_b = 80.0;
+	var xb = xo + (side_b / 2);
+	var xc = xo + (side_b / 2);
+	var side_a = 60.0;
+	var ya = yo + (side_a / 2);
+	var yb = yo + side_a;
+	var yc = yo + (side_a / 2);
+	var diff = $elm$time$Time$posixToMillis(model.current_time) - $elm$time$Time$posixToMillis(model.click_time);
+	var seconds_elapsed = diff * 0.001;
+	var ease_1 = A4(
+		$author$project$Animatic$transition,
+		t1,
+		t2,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		seconds_elapsed);
+	var x_a = A3($author$project$Animatic$interpolate, x_i, x_i + 1, ease_1);
+	var y_a = A3($author$project$Animatic$interpolate, y_i, y_i - 1, ease_1);
+	var ease_2 = A4(
+		$author$project$Animatic$transition,
+		t3,
+		t4,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		seconds_elapsed);
+	var x_b1 = A3($author$project$Animatic$interpolate, x_i, x_j, ease_2);
+	var y_b1 = A3($author$project$Animatic$interpolate, y_i, y_j, ease_2);
+	var ease_3 = A4(
+		$author$project$Animatic$transition,
+		t5,
+		t6,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		seconds_elapsed);
+	var x_c1 = A3($author$project$Animatic$interpolate, x_i, x_k, ease_3);
+	var y_c1 = A3($author$project$Animatic$interpolate, y_i, y_k, ease_3);
+	var ease_4 = A4(
+		$author$project$Animatic$transition,
+		t7,
+		t8,
+		A4($elm_community$easing_functions$Ease$bezier, 0.79, 0.01, 0.21, 1.00),
+		seconds_elapsed);
+	var x_b2 = A3($author$project$Animatic$interpolate, 0.0, x_l - x_j, ease_4);
+	var x_b = x_b1 + x_b2;
+	var x_c2 = A3($author$project$Animatic$interpolate, 0.0, (x_l - x_k) - 1, ease_4);
+	var x_c = x_c1 + x_c2;
+	var y_b2 = A3($author$project$Animatic$interpolate, 0.0, (y_l - y_j) + 1, ease_4);
+	var y_b = y_b1 + y_b2;
+	var y_c2 = A3($author$project$Animatic$interpolate, 0.0, y_l - y_k, ease_4);
+	var y_c = y_c1 + y_c2;
+	var ease_5 = A4(
+		$author$project$Animatic$transition,
+		t9,
+		t10,
+		A4($elm_community$easing_functions$Ease$bezier, 0.79, 0.01, 0.21, 1.00),
+		seconds_elapsed);
+	var anglec = ($elm$core$Basics$atan(3.0 / 4.0) / $elm$core$Basics$pi) * 180;
+	var angle_c = A3($author$project$Animatic$interpolate, 0.0, 90.0, ease_4);
+	var angle_b = A3($author$project$Animatic$interpolate, 0.0, -90.0, ease_4);
+	var angle = A3($author$project$Animatic$interpolate, 0.0, 180.0, ease_1);
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$svg$Svg$svg,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$width('600'),
+						$elm$svg$Svg$Attributes$height('500')
+					]),
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$author$project$Animatic$triangle_svg(
+							{angle: 0.0, opacity: 1.0, x: x_i, y: y_i}),
+							$author$project$Animatic$triangle_svg(
+							{angle: angle_c, opacity: 0.5, x: x_c, y: y_c}),
+							$author$project$Animatic$triangle_svg(
+							{angle: angle_b, opacity: 0.5, x: x_b, y: y_b}),
+							$author$project$Animatic$triangle_svg(
+							{angle: angle, opacity: 0.5, x: x_a, y: y_a})
+						]),
+					_Utils_ap(
+						$author$project$Animatic$congruency_marks(
+							{angle: -90.0, n: 1, opacity: 1.0, x: xa, y: ya}),
+						_Utils_ap(
+							$author$project$Animatic$congruency_marks(
+								{angle: 0.0, n: 2, opacity: 1.0, x: xb, y: yb}),
+							_Utils_ap(
+								$author$project$Animatic$congruency_marks(
+									{angle: anglec, n: 3, opacity: 1.0, x: xc, y: yc}),
+								_Utils_ap(
+									$author$project$Animatic$ninety(
+										{angle: 0.0, opacity: 1.0, x: xo, y: yo + side_a}),
+									_Utils_ap(
+										$author$project$Animatic$ninety(
+											{angle: -90.0, opacity: ease_5, x: (xo + side_b) + 1, y: yo - 1}),
+										$author$project$Animatic$ninety(
+											{angle: 90.0, opacity: ease_5, x: (xo + side_b) + 1, y: yo - 1}))))))))
+			]));
+};
+var $author$project$Animatic$scene_three = function (model) {
+	var y_i = 300;
+	var y_b1 = (y_i + (228 - 300)) + 1;
+	var y_c = y_b1 - 1;
+	var y_a1 = y_i - 1;
+	var x_i = 260 - 30;
+	var x_b = x_i + (332 - 260);
+	var x_c1 = x_b - 1;
+	var x_a1 = x_i + 1;
+	var texts2 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('a'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var texts1 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('b'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var t0 = 0.7;
+	var t1 = t0 + 1.2;
+	var t2 = t1 + 0.5;
+	var t3 = t2 + 0.8;
+	var t4 = t3 + 0.8;
+	var t5 = t4 + 1.0;
+	var t6 = t5 + 0.2;
+	var t7 = t6 + 1.0;
+	var sq1 = {s: 80, x: 260 - 30, y: (300 - 80) - 2};
+	var sq2 = {s: 60, x: (sq1.x + 80) + 3, y: 300};
+	var txt2 = {x: sq2.x + (sq2.s / 2.0), y: sq2.y + (sq2.s / 2.0)};
+	var sq3 = {s: ((80 + 60) + 3) + 60, x: sq1.x - 30, y: sq1.y - 30};
+	var sq4 = {s: (80 + 60) + 2, x: sq1.x, y: sq1.y};
+	var txt1 = {x: sq1.x + (sq1.s / 2.0), y: sq1.y + (sq1.s / 2.0)};
+	var op_3 = 1.0;
+	var diff = $elm$time$Time$posixToMillis(model.current_time) - $elm$time$Time$posixToMillis(model.click_time);
+	var t = diff * 0.001;
+	var ease_1 = A4(
+		$author$project$Animatic$transition,
+		t0,
+		t1,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var sq5y = A3($author$project$Animatic$interpolate, sq3.y - 13, (sq3.y + sq3.s) + 62, ease_1);
+	var ease_2 = A4(
+		$author$project$Animatic$transition,
+		t2,
+		t3,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var op2 = A3($author$project$Animatic$interpolate, 1.0, 0.0, ease_2);
+	var ease_3 = A4(
+		$author$project$Animatic$transition,
+		t4,
+		t5,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var x_c = A3($author$project$Animatic$interpolate, x_c1, x_c1 - (80 + 1), ease_3);
+	var y_b = A3($author$project$Animatic$interpolate, y_b1, y_b1 + (60 + 1), ease_3);
+	var ease_4 = A4(
+		$author$project$Animatic$transition,
+		t6,
+		t7,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var x_a = A3($author$project$Animatic$interpolate, x_a1, x_a1 + (60 + 1), ease_4);
+	var y_a = A3($author$project$Animatic$interpolate, y_a1, y_a1 - (80 + 1), ease_4);
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$svg$Svg$svg,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$width('600'),
+						$elm$svg$Svg$Attributes$height('500')
+					]),
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: '#e0e0e0', opacity: 1.0, s: sq3.s, x: sq3.x, y: sq3.y}),
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: 'white', opacity: 1.0, s: sq4.s, x: sq4.x, y: sq4.y}),
+							$author$project$Animatic$square_svg(
+							{angle: -10.0, color: 'white', opacity: 1.0, s: sq3.s + 400, x: sq3.x - 200, y: sq5y})
+						]),
+					_Utils_ap(
+						_List_fromArray(
+							[
+								$author$project$Animatic$square_svg(
+								{angle: 0.0, color: '#ffc0c0', opacity: op2, s: sq1.s, x: sq1.x, y: sq1.y}),
+								$author$project$Animatic$square_svg(
+								{angle: 0.0, color: '#c0ffc0', opacity: op2, s: sq2.s, x: sq2.x, y: sq2.y})
+							]),
+						_Utils_ap(
+							_List_fromArray(
+								[
+									$author$project$Animatic$text_svg(
+									{fontsize: '20px', opacity: op2, texts: texts1, x: txt1.x, y: txt1.y}),
+									$author$project$Animatic$text_svg(
+									{fontsize: '20px', opacity: op2, texts: texts2, x: txt2.x, y: txt2.y})
+								]),
+							_List_fromArray(
+								[
+									$author$project$Animatic$triangle_svg(
+									{angle: 0.0, opacity: op_3, x: x_i, y: y_i}),
+									$author$project$Animatic$triangle_svg(
+									{angle: 90.0, opacity: op_3, x: x_c, y: y_c}),
+									$author$project$Animatic$triangle_svg(
+									{angle: -90.0, opacity: op_3, x: x_b, y: y_b}),
+									$author$project$Animatic$triangle_svg(
+									{angle: 180.0, opacity: op_3, x: x_a, y: y_a})
+								])))))
+			]));
+};
+var $author$project$Animatic$triangles_paired = function (theta) {
+	var y_i = 300;
+	var y_b = (y_i + (228 - 300)) + 1;
+	var y_c = y_b - 1;
+	var y_a = y_i - 1;
+	var op_a = A3($author$project$Animatic$interpolate, 0.5, 1.0, theta);
+	var dx = 30.0 * theta;
+	var x_i = 260 - dx;
+	var x_a = x_i + 1;
+	var x_b = x_i + (332 - 260);
+	var x_c = x_b - 1;
+	return _List_fromArray(
+		[
+			$author$project$Animatic$triangle_svg(
+			{angle: 0.0, opacity: 1.0, x: x_i, y: y_i}),
+			$author$project$Animatic$triangle_svg(
+			{angle: 90.0, opacity: op_a, x: x_c, y: y_c}),
+			$author$project$Animatic$triangle_svg(
+			{angle: -90.0, opacity: op_a, x: x_b, y: y_b}),
+			$author$project$Animatic$triangle_svg(
+			{angle: 180.0, opacity: op_a, x: x_a, y: y_a})
+		]);
+};
+var $author$project$Animatic$scene_two_a = function (model) {
+	var texts2 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('a'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var texts1 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('b'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var sq1 = {s: 80, x: 260 - 30, y: (300 - 80) - 2};
+	var sq2 = {s: 60, x: (sq1.x + 80) + 3, y: 300};
+	var txt2 = {x: sq2.x + (sq2.s / 2.0), y: sq2.y + (sq2.s / 2.0)};
+	var txt1 = {x: sq1.x + (sq1.s / 2.0), y: sq1.y + (sq1.s / 2.0)};
+	var diff = $elm$time$Time$posixToMillis(model.current_time) - $elm$time$Time$posixToMillis(model.click_time);
+	var t = diff * 0.001;
+	var ease_1 = A4(
+		$author$project$Animatic$transition,
+		0.2,
+		1.2,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var ease_2 = A4(
+		$author$project$Animatic$transition,
+		1.6,
+		2.6,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	var ease_3 = A4(
+		$author$project$Animatic$transition,
+		3.2,
+		3.6,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$svg$Svg$svg,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$width('600'),
+						$elm$svg$Svg$Attributes$height('500')
+					]),
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: '#ffc0c0', opacity: ease_2, s: sq1.s, x: sq1.x, y: sq1.y}),
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: '#c0ffc0', opacity: ease_2, s: sq2.s, x: sq2.x, y: sq2.y})
+						]),
+					_Utils_ap(
+						$author$project$Animatic$triangles_paired(ease_1),
+						_List_fromArray(
+							[
+								$author$project$Animatic$text_svg(
+								{fontsize: '20px', opacity: ease_3, texts: texts1, x: txt1.x, y: txt1.y}),
+								$author$project$Animatic$text_svg(
+								{fontsize: '20px', opacity: ease_3, texts: texts2, x: txt2.x, y: txt2.y})
+							]))))
+			]));
+};
+var $author$project$Animatic$scene_two_b = function (model) {
+	var texts2 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('a'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var texts1 = _List_fromArray(
+		[
+			$elm$svg$Svg$text('b'),
+			A2(
+			$elm$svg$Svg$tspan,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$fontSize('11'),
+					$elm$svg$Svg$Attributes$dy('-8')
+				]),
+			_List_fromArray(
+				[
+					$elm$svg$Svg$text('2')
+				]))
+		]);
+	var t1 = 0.5;
+	var t2 = t1 + 0.4;
+	var sq1 = {s: 80, x: 260 - 30, y: (300 - 80) - 2};
+	var sq2 = {s: 60, x: (sq1.x + 80) + 3, y: 300};
+	var txt2 = {x: sq2.x + (sq2.s / 2.0), y: sq2.y + (sq2.s / 2.0)};
+	var txt1 = {x: sq1.x + (sq1.s / 2.0), y: sq1.y + (sq1.s / 2.0)};
+	var diff = $elm$time$Time$posixToMillis(model.current_time) - $elm$time$Time$posixToMillis(model.click_time);
+	var t = diff * 0.001;
+	var ease_3 = A4(
+		$author$project$Animatic$transition,
+		t1,
+		t2,
+		A4($elm_community$easing_functions$Ease$bezier, 0.26, 0.79, 0.28, 1.00),
+		t);
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$svg$Svg$svg,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$width('600'),
+						$elm$svg$Svg$Attributes$height('500')
+					]),
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: '#ffc0c0', opacity: 1.0, s: sq1.s, x: sq1.x, y: sq1.y}),
+							$author$project$Animatic$square_svg(
+							{angle: 0.0, color: '#c0ffc0', opacity: 1.0, s: sq2.s, x: sq2.x, y: sq2.y})
+						]),
+					_Utils_ap(
+						$author$project$Animatic$triangles_paired(1.0),
+						_List_fromArray(
+							[
+								$author$project$Animatic$text_svg(
+								{fontsize: '20px', opacity: ease_3, texts: texts1, x: txt1.x, y: txt1.y}),
+								$author$project$Animatic$text_svg(
+								{fontsize: '20px', opacity: ease_3, texts: texts2, x: txt2.x, y: txt2.y})
+							]))))
+			]));
+};
+var $author$project$Animatic$scene_zero = function (model) {
+	var yo = 300.0;
+	var xo = 260.0;
+	var xa = xo;
+	var txt_spacing = 24;
+	var texts3 = _List_fromArray(
+		[
+			$elm$html$Html$text('c')
+		]);
+	var texts2 = _List_fromArray(
+		[
+			$elm$html$Html$text('b')
+		]);
+	var texts1 = _List_fromArray(
+		[
+			$elm$html$Html$text('a')
+		]);
+	var t1 = 0.6;
+	var t2 = t1 + 0.4;
+	var t3 = t2 + 0.1;
+	var t4 = t3 + 0.15;
+	var side_b = 80.0;
+	var xb = xo + (side_b / 2);
+	var xc = xo + (side_b / 2);
+	var side_a = 60.0;
+	var ya = yo + (side_a / 2);
+	var txt1 = {x: xa - txt_spacing, y: ya};
+	var yb = yo + side_a;
+	var txt2 = {x: xb, y: yb + txt_spacing};
+	var yc = yo + (side_a / 2);
+	var txt3 = {x: xc + (txt_spacing * (3 / 5)), y: yc - (txt_spacing * (4 / 5))};
+	var dt = 0.3;
+	var diff = $elm$time$Time$posixToMillis(model.current_time) - $elm$time$Time$posixToMillis(model.click_time);
+	var t = diff * 0.001;
+	var ease_1 = A4(
+		$author$project$Animatic$transition,
+		t1,
+		t2,
+		function (theta) {
+			return theta;
+		},
+		t);
+	var ease_2 = A4(
+		$author$project$Animatic$transition,
+		t3,
+		t4,
+		function (theta) {
+			return theta;
+		},
+		t);
+	var ease_3 = A4(
+		$author$project$Animatic$transition,
+		t3 + dt,
+		t4 + dt,
+		function (theta) {
+			return theta;
+		},
+		t);
+	var ease_4 = A4(
+		$author$project$Animatic$transition,
+		t3 + (2 * dt),
+		t4 + (2 * dt),
+		function (theta) {
+			return theta;
+		},
+		t);
+	var anglec = ($elm$core$Basics$atan(3.0 / 4.0) / $elm$core$Basics$pi) * 180;
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$svg$Svg$svg,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$width('600'),
+						$elm$svg$Svg$Attributes$height('500')
+					]),
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$author$project$Animatic$triangle_svg(
+							{angle: 0.0, opacity: ease_1, x: xo, y: yo})
+						]),
+					_Utils_ap(
+						$author$project$Animatic$congruency_marks(
+							{angle: -90.0, n: 1, opacity: ease_2, x: xa, y: ya}),
+						_Utils_ap(
+							$author$project$Animatic$congruency_marks(
+								{angle: 0.0, n: 2, opacity: ease_3, x: xb, y: yb}),
+							_Utils_ap(
+								$author$project$Animatic$congruency_marks(
+									{angle: anglec, n: 3, opacity: ease_4, x: xc, y: yc}),
+								_Utils_ap(
+									$author$project$Animatic$ninety(
+										{angle: 0.0, opacity: ease_1, x: xo, y: yo + side_a}),
+									_List_fromArray(
+										[
+											$author$project$Animatic$text_svg(
+											{fontsize: '20px', opacity: ease_2, texts: texts1, x: txt1.x, y: txt1.y}),
+											$author$project$Animatic$text_svg(
+											{fontsize: '20px', opacity: ease_3, texts: texts2, x: txt2.x, y: txt2.y}),
+											$author$project$Animatic$text_svg(
+											{fontsize: '20px', opacity: ease_4, texts: texts3, x: txt3.x, y: txt3.y})
+										])))))))
+			]));
+};
+var $author$project$Animatic$viewScene = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				function () {
+				var _v0 = model.index;
+				switch (_v0) {
+					case 0:
+						return $author$project$Animatic$scene_zero(model);
+					case 1:
+						return $author$project$Animatic$scene_one(model);
+					case 2:
+						return model.query_answered ? $author$project$Animatic$scene_two_b(model) : $author$project$Animatic$scene_two_a(model);
+					case 3:
+						return $author$project$Animatic$scene_three(model);
+					case 4:
+						return $author$project$Animatic$scene_four(model);
+					default:
+						return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+				}
+			}()
+			]));
+};
+var $author$project$Animatic$view = function (model) {
+	var window_width = 600;
+	var window_height = 540;
+	var window_half_stroke = 1;
+	var window_stroke = window_half_stroke * 2;
+	var window_margin_bottom = 20 - window_stroke;
+	var win_stroke_text = $elm$core$String$fromInt(window_stroke) + 'px solid #f0f0f0';
+	var panel_width = window_width + (4 * window_half_stroke);
+	var panel_padding_visual = 30;
+	var panel_padding = panel_padding_visual - (2 * window_half_stroke);
+	var input_area_height = 260;
+	var panel_height = (window_height + input_area_height) + (4 * window_half_stroke);
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'width', 'device-width'),
+				A2($elm$html$Html$Attributes$style, 'height', '100vh'),
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'justify-content', 'center'),
+				A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
+				A2($elm$html$Html$Attributes$style, 'background-color', '#f0f0f0')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$Attributes$style,
+						'width',
+						$elm$core$String$fromInt(panel_width) + 'px'),
+						A2(
+						$elm$html$Html$Attributes$style,
+						'height',
+						$elm$core$String$fromInt(panel_height) + 'px'),
+						A2($elm$html$Html$Attributes$style, 'justify-content', 'center'),
+						A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
+						A2($elm$html$Html$Attributes$style, 'background-color', 'white'),
+						A2(
+						$elm$html$Html$Attributes$style,
+						'padding',
+						$elm$core$String$fromInt(panel_padding) + 'px'),
+						A2($elm$html$Html$Attributes$style, 'border-radius', '16px')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$Attributes$style,
+								'width',
+								$elm$core$String$fromInt(window_width) + 'px'),
+								A2(
+								$elm$html$Html$Attributes$style,
+								'height',
+								$elm$core$String$fromInt(window_height) + 'px'),
+								A2($elm$html$Html$Attributes$style, 'background-color', 'white'),
+								A2($elm$html$Html$Attributes$style, 'margin', 'auto'),
+								A2(
+								$elm$html$Html$Attributes$style,
+								'margin-bottom',
+								$elm$core$String$fromInt(window_margin_bottom) + 'px'),
+								A2($elm$html$Html$Attributes$style, 'border', win_stroke_text),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '6px')
+							]),
+						_List_fromArray(
+							[
+								$author$project$Animatic$viewScene(model)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$Attributes$style,
+								'width',
+								$elm$core$String$fromInt(window_width) + 'px'),
+								A2($elm$html$Html$Attributes$style, 'height', '10px'),
+								A2($elm$html$Html$Attributes$style, 'margin', 'auto')
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$author$project$Animatic$viewControls(model)
+							]))
+					]))
+			]));
+};
+var $author$project$Animatic$main = $elm$browser$Browser$element(
+	{init: $author$project$Animatic$init, subscriptions: $author$project$Animatic$subscriptions, update: $author$project$Animatic$update, view: $author$project$Animatic$view});
+_Platform_export({'Animatic':{'init':$author$project$Animatic$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
 
-  var app = Elm.Button.init({ node: document.getElementById("elm") });
+  var app = Elm.Animatic.init({ node: document.getElementById("elm") });
 }
 catch (e)
 {
