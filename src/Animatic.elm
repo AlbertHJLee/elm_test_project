@@ -32,14 +32,42 @@ main =
 
 -- The model should track both the time an event was triggered (click_time)
 -- and the current time. Thus, animations can be timed relative to the event
-
+--
 type alias Model =
   { index : Int
   , max_scenes : Int
   , click_time : Time.Posix
   , current_time : Time.Posix
-  , query_answered : Bool
+  , query_status : Queries
   }
+
+
+-- While records tend to be more stable as inputs for conditional operations,
+-- if we want to reference a field with a variable, this requires us to map each
+-- potential string value of the variable to a field accessor, e.g.:
+--   case field_string of
+--     "two" -> .two
+--     "four" -> .four
+-- This can be cumbersome with a large number of queries. In the next commit
+-- we will refactor Queries as a Dict for more flexibility.
+type alias Queries =
+  { two : QueryStatus
+  , four : QueryStatus
+  }
+
+
+-- Any given query can be Unanswered or answered.
+-- If it is answered, it can have been answered Correctly or Incorrectly.
+--
+-- Depending on the degree of freedom available to submitted answers, several
+-- different answers could map to the same Incorrect QueryStatus. The current
+-- model does not differentiate between these potentially different incorrect
+-- answers, but this could be added as a future feature.
+--
+type QueryStatus
+  = Unanswered
+  | Correct
+  | Incorrect
 
 
 init : () -> (Model, Cmd Msg)
@@ -49,7 +77,9 @@ init _ =
       4
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
-      False
+      ( Queries
+          Unanswered
+          Unanswered )
   , Task.perform SetTime Time.now
   )
 
@@ -66,6 +96,7 @@ type Msg
   | Tick Time.Posix
   | Reset
   | Repeat
+  | Answer QueryStatus
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -119,6 +150,18 @@ update msg model =
     Repeat ->
       ( model
       , Task.perform SetTime Time.now
+      )
+
+    Answer querystatus ->
+      let
+        key = model.index
+        old_query_status = model.query_status
+        new_query_status = { old_query_status | two = querystatus }
+      in
+      ( { model
+          | query_status = new_query_status
+        }
+      , Cmd.none
       )
 
 
@@ -238,9 +281,10 @@ viewScene model =
     [ case model.index of
         0 -> scene_zero model
         1 -> scene_one model
-        2 ->
-             if model.query_answered then scene_two_b model
-             else scene_two_a model
+        2 -> case model.query_status.two of
+                Unanswered -> scene_two_a model
+                Correct    -> scene_two_b model
+                Incorrect  -> scene_two_b model
         3 -> scene_three model
         4 -> scene_four model
         _ -> div [] []
