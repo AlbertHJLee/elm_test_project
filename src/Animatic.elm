@@ -140,7 +140,7 @@ view model =
     window_height = 540
     window_half_stroke = 1
     window_stroke = window_half_stroke * 2
-    win_stroke_text = ((String.fromInt window_stroke) ++ "px solid #f0f0f0")
+    win_stroke_text = ((String.fromInt window_stroke) ++ "px solid #e0e0e0")
 
     -- Spacing for control area
     window_margin_bottom = 20 - window_stroke
@@ -149,7 +149,7 @@ view model =
     -- Make room for border strokes, which get added to outside of div box
     panel_width = window_width + 4 * window_half_stroke
     panel_height = window_height + input_area_height + 4 * window_half_stroke
-    panel_padding_visual = 30
+    panel_padding_visual = 48
     panel_padding = panel_padding_visual - 2 * window_half_stroke
 
     -- Control Box
@@ -189,7 +189,7 @@ view model =
           -- Placeholder for UI element
           div
             [ Attr.style "width" ((String.fromInt window_width) ++ "px")
-            , Attr.style "height" "10px"
+            , Attr.style "height" "12px"
             , Attr.style "margin" "auto"
             ]
             []
@@ -209,7 +209,7 @@ viewControls model =
   in
   div
     [ Attr.style "width" "160px"
-    , Attr.style "margin" "10px auto"
+    , Attr.style "margin" "12px auto"
     , Attr.style "text-align" "center"
     , Attr.style "font-size" controls_font
     , Attr.style "background-color" "white"
@@ -226,7 +226,7 @@ viewControls model =
     , button [ onClick Previous, Attr.style "font-size" controls_font ] [ text "<" ]
     , button [ onClick Repeat,   Attr.style "font-size" controls_font ] [ text "repeat" ]
     , button [ onClick Next,     Attr.style "font-size" controls_font ] [ text ">" ]
-    , div [ Attr.style "height" "10px" ] []
+    , div [ Attr.style "height" "12px" ] []
     , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
     ]
 
