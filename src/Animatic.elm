@@ -11,6 +11,7 @@ import Html.Events exposing (onClick)
 import Html.Attributes as Attr
 import Time
 import Task
+import Dict exposing (Dict)
 
 import Svg exposing (svg, circle, rect, line, polygon, text_)
 import Svg.Attributes exposing (..)
@@ -42,18 +43,8 @@ type alias Model =
   }
 
 
--- While records tend to be more stable as inputs for conditional operations,
--- if we want to reference a field with a variable, this requires us to map each
--- potential string value of the variable to a field accessor, e.g.:
---   case field_string of
---     "two" -> .two
---     "four" -> .four
--- This can be cumbersome with a large number of queries. In the next commit
--- we will refactor Queries as a Dict for more flexibility.
 type alias Queries =
-  { two : QueryStatus
-  , four : QueryStatus
-  }
+  Dict Int QueryStatus
 
 
 -- Any given query can be Unanswered or answered.
@@ -70,6 +61,14 @@ type QueryStatus
   | Incorrect
 
 
+init_queries : Dict Int QueryStatus
+init_queries =
+  Dict.fromList
+    [ ( 2, Unanswered )
+    , ( 4, Unanswered )
+    ]
+
+
 init : () -> (Model, Cmd Msg)
 init _ =
   ( Model
@@ -77,9 +76,7 @@ init _ =
       4
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
-      ( Queries
-          Unanswered
-          Unanswered )
+      ( init_queries )
   , Task.perform SetTime Time.now
   )
 
@@ -154,9 +151,9 @@ update msg model =
 
     Answer querystatus ->
       let
+        -- We don't know if key is present so querystatus must be wrapped in Maybe
         key = model.index
-        old_query_status = model.query_status
-        new_query_status = { old_query_status | two = querystatus }
+        new_query_status = Dict.update key (\_ -> Just querystatus) model.query_status
       in
       ( { model
           | query_status = new_query_status
@@ -281,10 +278,11 @@ viewScene model =
     [ case model.index of
         0 -> scene_zero model
         1 -> scene_one model
-        2 -> case model.query_status.two of
-                Unanswered -> scene_two_a model
-                Correct    -> scene_two_b model
-                Incorrect  -> scene_two_b model
+        2 -> case ( Dict.get 2 model.query_status ) of
+                Just Unanswered -> scene_two_a model
+                Just Correct    -> scene_two_b model
+                Just Incorrect  -> scene_two_b model
+                Nothing         -> scene_two_b model
         3 -> scene_three model
         4 -> scene_four model
         _ -> div [] []
