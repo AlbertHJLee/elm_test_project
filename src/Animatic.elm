@@ -40,6 +40,7 @@ type alias Model =
   , click_time : Time.Posix
   , current_time : Time.Posix
   , query_status : Queries
+  , query_ready : Bool
   }
 
 
@@ -77,6 +78,7 @@ init _ =
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
       ( init_queries )
+      True
   , Task.perform SetTime Time.now
   )
 
@@ -229,10 +231,9 @@ view model =
           -- Placeholder for UI element
           div
             [ Attr.style "width" ((String.fromInt window_width) ++ "px")
-            , Attr.style "height" "12px"
             , Attr.style "margin" "auto"
             ]
-            []
+            [ viewQuery model ]
         ,
           -- Box holding main user controls
           div
@@ -269,6 +270,56 @@ viewControls model =
     , div [ Attr.style "height" "12px" ] []
     , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
     ]
+
+
+viewQuery : Model -> Html Msg
+viewQuery model =
+  let
+    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
+    t = (toFloat diff) * 0.001
+    t1 = 1.5
+    t2 = t1 + 0.6
+    t3 = t2 + 0.0
+    ease_1 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    -- Get div parameters
+    height_min = 12   -- specify in pixels
+    height_max = 48
+    -- Only show "Submit" button if query is ready to receive answer
+    height =
+      if model.query_ready
+      then interpolate height_min height_max ease_1
+      else height_min
+    show_button =
+      if model.query_ready
+      then (t > t3)
+      else False
+    -- Translate to html
+    div_height = ((String.fromFloat height) ++ "px")
+    controls_font = "20px"
+  in
+  div
+    [ Attr.style "width" "100%"
+    , Attr.style "height" div_height
+    , Attr.style "display" "flex"
+    , Attr.style "align-items" "center"
+    , Attr.style "justify-content" "center"
+    , Attr.style "text-align" "center"
+    , Attr.style "margin" "auto"
+    ]
+    [ if show_button
+      then
+        button
+          [ onClick ( checkQuery model True )
+          , Attr.style "font-size" controls_font
+          ]
+          [ text "Submit" ]
+      else
+        div [] []
+    ]
+
+
+checkQuery model choice =
+  Answer Correct
 
 
 viewScene : Model -> Html Msg
