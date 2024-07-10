@@ -107,9 +107,12 @@ type Msg
   | DoNothing
 
 
-checkDestination destination model =
+checkIfNotUnanswered destination model =
   if ( Dict.member destination model.query_status )
-  then False
+  then
+    if ( ( Dict.get destination model.query_status) == Just Unanswered )
+    then False
+    else True
   else True
 
 
@@ -128,7 +131,7 @@ update msg model =
         in
         ( { model
             | index = destination
-            , next_okay = ( checkDestination destination model )
+            , next_okay = ( checkIfNotUnanswered destination model )
           }
         , Task.perform SetTime Time.now
         )
@@ -144,7 +147,7 @@ update msg model =
         in
         ( { model
             | index = destination
-            , next_okay = ( checkDestination destination model )
+            , next_okay = ( checkIfNotUnanswered destination model )
           }
         , Task.perform SetTime Time.now
         )
@@ -180,7 +183,7 @@ update msg model =
       in
       ( { model
           | index = destination
-          , next_okay = ( checkDestination destination model )
+          , next_okay = ( checkIfNotUnanswered destination model )
         }
       , Task.perform SetTime Time.now
       )
@@ -210,7 +213,8 @@ update msg model =
       in
       ( { model
           | query_status = new_query_status
-          , query_ready = False
+          , query_ready = False  -- Submit button should not stay visible after answer is submitted
+          , next_okay = True     -- Allow user to advance to next scene
         }
       , Task.perform SetTime Time.now
       )
@@ -853,8 +857,6 @@ scene_two_b model =
         , Attr.style "flex-direction" "column"
         , Attr.style "text-align" "center"
         , Attr.style "opacity" ( String.fromFloat ease_3 )
-        -- , Attr.style "justify-content" "center"
-        -- , Attr.style "align-items" "center"
         ]
         [ div
             [ Attr.style "height" "32px"
@@ -869,7 +871,7 @@ scene_two_b model =
             [ Attr.style "height" "32px"
             , Attr.style "font-size" "20px"
             ]
-            [ text "The area of the green square is a^2" ]
+            [ text "The area of the green square is: a^2" ]
         ]
     ]
 
