@@ -41,6 +41,7 @@ type alias Model =
   , current_time : Time.Posix
   , query_status : Queries
   , query_ready : Bool
+  , next_okay : Bool
   }
 
 
@@ -78,6 +79,7 @@ init _ =
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
       ( init_queries )
+      False
       True
   , Task.perform SetTime Time.now
   )
@@ -96,6 +98,13 @@ type Msg
   | Reset
   | Repeat
   | Answer QueryStatus
+  | DoNothing
+
+
+checkDestination destination model =
+  if ( Dict.member destination model.query_status )
+  then False
+  else True
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -108,7 +117,13 @@ update msg model =
         , Cmd.none
         )
       else
-        ( { model | index = model.index + 1 }
+        let
+          destination = model.index + 1
+        in
+        ( { model
+            | index = destination
+            , next_okay = ( checkDestination destination model )
+          }
         , Task.perform SetTime Time.now
         )
 
@@ -118,7 +133,13 @@ update msg model =
         , Cmd.none
         )
       else
-        ( { model | index = model.index - 1 }
+        let
+          destination = model.index - 1
+        in
+        ( { model
+            | index = destination
+            , next_okay = ( checkDestination destination model )
+          }
         , Task.perform SetTime Time.now
         )
 
@@ -138,8 +159,12 @@ update msg model =
       )
 
     Reset ->
+      let
+        destination = 0
+      in
       ( { model
-          | index = 0
+          | index = destination
+          , next_okay = ( checkDestination destination model )
         }
       , Task.perform SetTime Time.now
       )
@@ -162,6 +187,9 @@ update msg model =
         }
       , Cmd.none
       )
+
+    DoNothing ->
+      ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -247,6 +275,11 @@ viewControls : Model -> Html Msg
 viewControls model =
   let
     controls_font = "20px"
+    -- Only allow ">" button to go to next scene if there isn't a query to answer
+    next_msg =
+      if model.next_okay
+      then Next
+      else DoNothing
   in
   div
     [ Attr.style "width" "160px"
@@ -266,7 +299,7 @@ viewControls model =
         [ text (String.fromInt model.index) ]
     , button [ onClick Previous, Attr.style "font-size" controls_font ] [ text "<" ]
     , button [ onClick Repeat,   Attr.style "font-size" controls_font ] [ text "repeat" ]
-    , button [ onClick Next,     Attr.style "font-size" controls_font ] [ text ">" ]
+    , button [ onClick next_msg, Attr.style "font-size" controls_font ] [ text ">" ]
     , div [ Attr.style "height" "12px" ] []
     , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
     ]
@@ -666,12 +699,10 @@ scene_two_a model =
 
     -- Fade in text
     ease_3 = transition 3.2 3.6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
-    txt1 = { x = (sq1.x + sq1.s / 2.0), y = (sq1.y + sq1.s / 2.0) }
+    txt1 = { x = (sq1.x + (sq1.s + sq2.s) / 2.0), y = (sq2.y + sq2.s + 64) }
     txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
-    texts1 = [ Svg.text "b"
-             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
-    texts2 = [ Svg.text "a"
-             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+    texts1 = [ text "What is the area of the green square?" ]
+    texts2 = [ text "?" ]
   in
   div
     []
