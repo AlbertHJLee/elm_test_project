@@ -6,8 +6,8 @@ module Animatic exposing (..)
 
 import Browser
 import Browser.Events
-import Html exposing (Html, button, div, text, h1, h2)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, text, h1, h2, select, option, input, label)
+import Html.Events exposing (onClick, onInput)
 import Html.Attributes as Attr
 import Time
 import Task
@@ -42,6 +42,7 @@ type alias Model =
   , query_status : Queries
   , query_ready : Bool
   , next_okay : Bool
+  , response : String
   }
 
 
@@ -81,6 +82,7 @@ init _ =
       ( init_queries )
       False
       True
+      ""
   , Task.perform SetTime Time.now
   )
 
@@ -97,6 +99,7 @@ type Msg
   | Tick Time.Posix
   | Reset
   | Repeat
+  | SetResponse String
   | Answer QueryStatus
   | DoNothing
 
@@ -174,6 +177,13 @@ update msg model =
     Repeat ->
       ( model
       , Task.perform SetTime Time.now
+      )
+
+    SetResponse user_input ->
+      ( { model
+          | response = user_input
+        }
+      , Cmd.none
       )
 
     Answer querystatus ->
@@ -703,12 +713,14 @@ scene_two_a model =
     txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
     texts1 = [ text "What is the area of the green square?" ]
     texts2 = [ text "?" ]
+
+    controls_font = "20px"
   in
   div
     []
     [ svg
         [ width "600"
-        , height "500"
+        , height "440"
         ]
         (
           -- Render squares before triangles so that triangle strokes are not obscured
@@ -720,7 +732,33 @@ scene_two_a model =
           , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
           ]
         )
+    , div
+        []
+        -- [ button [ onClick DoNothing, Attr.style "font-size" controls_font ] [ text "2a" ] ]
+        (
+          [ select [ onInput SetResponse ]
+              [ option [ Attr.value "a" ] [ text "a" ]
+              , option [ Attr.value "2a" ] [ text "2a" ]
+              , option [ Attr.value "2a^2" ] [ text "2a^2" ]
+              ]
+          , div [] [ text ("Selected: " ++ model.response) ]
+          ] ++
+          ( radio_unit model )
+        )
     ]
+
+
+radio_unit model =
+  [ input
+      [ Attr.type_ "radio"
+      , Attr.name "fruit"
+      , Attr.value "apple"
+      , Attr.checked (model.response == "apple")
+      , onClick (SetResponse "apple")
+      ]
+      []
+  , label [] [ text "Apple" ]
+  ]
 
 
 scene_two_b model =
