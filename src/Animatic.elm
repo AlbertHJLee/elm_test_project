@@ -38,6 +38,7 @@ type alias Model =
   { index : Int
   , max_scenes : Int
   , click_time : Time.Posix
+  , click_time_aux : Time.Posix
   , current_time : Time.Posix
   , query_status : Queries
   , query_ready : Bool
@@ -79,6 +80,7 @@ init _ =
       4
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
+      (Time.millisToPosix 0)
       ( init_queries )
       False
       True
@@ -96,6 +98,7 @@ type Msg
   = Previous
   | Next
   | SetTime Time.Posix
+  | SetAuxTime Time.Posix
   | Tick Time.Posix
   | Reset
   | Repeat
@@ -150,6 +153,16 @@ update msg model =
       ( { model
           | click_time = newTime
           , current_time = newTime
+          , query_ready = False
+          , response = ""
+        }
+      , Cmd.none
+      )
+
+    SetAuxTime newTime ->
+      ( { model
+          | click_time_aux = newTime
+          , current_time = newTime
         }
       , Cmd.none
       )
@@ -182,8 +195,11 @@ update msg model =
     SetResponse user_input ->
       ( { model
           | response = user_input
+          , query_ready = True
         }
-      , Cmd.none
+      , if ( model.response == "" )
+        then ( Task.perform SetAuxTime Time.now )
+        else Cmd.none
       )
 
     Answer querystatus ->
@@ -194,8 +210,9 @@ update msg model =
       in
       ( { model
           | query_status = new_query_status
+          , query_ready = False
         }
-      , Cmd.none
+      , Task.perform SetTime Time.now
       )
 
     DoNothing ->
@@ -318,9 +335,9 @@ viewControls model =
 viewQuery : Model -> Html Msg
 viewQuery model =
   let
-    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time)
+    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time_aux)
     t = (toFloat diff) * 0.001
-    t1 = 1.5
+    t1 = 0.0
     t2 = t1 + 0.6
     t3 = t2 + 0.0
     ease_1 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
@@ -733,32 +750,44 @@ scene_two_a model =
           ]
         )
     , div
-        []
-        -- [ button [ onClick DoNothing, Attr.style "font-size" controls_font ] [ text "2a" ] ]
-        (
-          [ select [ onInput SetResponse ]
-              [ option [ Attr.value "a" ] [ text "a" ]
-              , option [ Attr.value "2a" ] [ text "2a" ]
-              , option [ Attr.value "2a^2" ] [ text "2a^2" ]
-              ]
-          , div [] [ text ("Selected: " ++ model.response) ]
-          ] ++
-          ( radio_unit model )
-        )
+        [ Attr.style "justify-content" "center"
+        , Attr.style "display" "flex"
+        , Attr.style "font-size" "20px"
+        , Attr.style "opacity" ( String.fromFloat ease_3 )
+        ]
+        [ ( radio_unit "scene_two_question" "a" ( text "a" ) model )
+        , ( radio_unit "scene_two_question" "2a" ( text "2a" ) model )
+        , ( radio_unit "scene_two_question" "2a^2" ( text "2a^2" ) model )
+        , ( radio_unit "scene_two_question" "a^2" ( text "a^2" ) model )
+        ]
     ]
 
 
-radio_unit model =
-  [ input
-      [ Attr.type_ "radio"
-      , Attr.name "fruit"
-      , Attr.value "apple"
-      , Attr.checked (model.response == "apple")
-      , onClick (SetResponse "apple")
+selections model =
+  [ select [ onInput SetResponse ]
+      [ option [ Attr.value "a" ] [ text "a" ]
+      , option [ Attr.value "2a" ] [ text "2a" ]
+      , option [ Attr.value "2a^2" ] [ text "2a^2" ]
       ]
-      []
-  , label [] [ text "Apple" ]
+  , div [] [ text ("Selected: " ++ model.response) ]
   ]
+
+
+radio_unit name value html_text model =
+  div
+    [ Attr.style "display" "inline-block"
+    , Attr.style "margin-right" "20px"
+    ]
+    [ input
+        [ Attr.type_ "radio"
+        , Attr.name name
+        , Attr.value value
+        , Attr.checked (model.response == value)
+        , onClick (SetResponse value)
+        ]
+        []
+    , label [] [ html_text ]
+    ]
 
 
 scene_two_b model =
@@ -772,21 +801,35 @@ scene_two_b model =
     sq2 = { x = (sq1.x + 80 + 3), y = 300, s = 60 }
 
     -- Fade in text
-    t1 = 0.5
-    t2 = t1 + 0.4
-    ease_3 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    t1 = 0.85
+    t2 = t1 + 0.6
+    ease_1 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
     txt1 = { x = (sq1.x + sq1.s / 2.0), y = (sq1.y + sq1.s / 2.0) }
     txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
     texts1 = [ Svg.text "b"
              , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
     texts2 = [ Svg.text "a"
              , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+    -- txt3 = { x = (sq1.x + (sq1.s + sq2.s) / 2.0), y = (sq2.y + sq2.s + 64) }
+
+    t3 = 0.0
+    t4 = t3 + 0.15
+    ease_3 = transition t3 t4 ( Ease.bezier 0.5 0.01 0.5 1.00 ) t
+    answer_correct = ( Dict.get model.index model.query_status ) == Just Correct
+    texts3 =
+      if answer_correct
+      then [ text "Correct!" ]
+      else [ text "Incorrect" ]
+    color3 =
+      if answer_correct
+      then "#20c0f0"
+      else "#e0f0c0"
   in
   div
     []
     [ svg
         [ width "600"
-        , height "500"
+        , height "400"
         ]
         (
           -- Render squares before triangles so that triangle strokes are not obscured
@@ -794,10 +837,19 @@ scene_two_b model =
           , square_svg { x = sq2.x, y = sq2.y, s = sq2.s, angle = 0.0, opacity = 1.0, color = "#c0ffc0" }
           ] ++
           ( triangles_paired 1.0 ) ++
-          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_3, fontsize = "20px" }
-          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
+          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_1, fontsize = "20px" }
+          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_1, fontsize = "20px" }
+          -- , text_svg { x = txt3.x, y = txt3.y, texts = texts3, opacity = ease_3, fontsize = "32px", color = color3 }
           ]
         )
+    , div
+        [ Attr.style "justify-content" "center"
+        , Attr.style "display" "flex"
+        , Attr.style "font-size" "32px"
+        , Attr.style "opacity" ( String.fromFloat ease_3 )
+        , Attr.style "color" color3
+        ]
+        texts3
     ]
 
 
