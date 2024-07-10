@@ -369,7 +369,7 @@ viewQuery model =
     [ if show_button
       then
         button
-          [ onClick ( checkQuery model True )
+          [ onClick ( checkQuery model )
           , Attr.style "font-size" controls_font
           ]
           [ text "Submit" ]
@@ -378,8 +378,12 @@ viewQuery model =
     ]
 
 
-checkQuery model choice =
-  Answer Correct
+checkQuery model =
+  case model.index of
+    2 -> if model.response == "a^2"
+         then Answer Correct
+         else Answer Incorrect
+    _ -> Answer Unanswered
 
 
 viewScene : Model -> Html Msg
@@ -725,7 +729,9 @@ scene_two_a model =
     sq2 = { x = (sq1.x + 80 + 3), y = 300, s = 60 }
 
     -- Fade in text
-    ease_3 = transition 3.2 3.6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    t5 = 2.9
+    t6 = t5 + 0.4
+    ease_3 = transition t5 t6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
     txt1 = { x = (sq1.x + (sq1.s + sq2.s) / 2.0), y = (sq2.y + sq2.s + 64) }
     txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
     texts1 = [ text "What is the area of the green square?" ]
@@ -816,14 +822,14 @@ scene_two_b model =
     t4 = t3 + 0.15
     ease_3 = transition t3 t4 ( Ease.bezier 0.5 0.01 0.5 1.00 ) t
     answer_correct = ( Dict.get model.index model.query_status ) == Just Correct
-    texts3 =
+    text3 =
       if answer_correct
-      then [ text "Correct!" ]
-      else [ text "Incorrect" ]
+      then "Correct!"
+      else "Incorrect"
     color3 =
       if answer_correct
       then "#20c0f0"
-      else "#e0f0c0"
+      else "#f0b010"
   in
   div
     []
@@ -843,13 +849,28 @@ scene_two_b model =
           ]
         )
     , div
-        [ Attr.style "justify-content" "center"
-        , Attr.style "display" "flex"
-        , Attr.style "font-size" "32px"
+        [ Attr.style "display" "flex"
+        , Attr.style "flex-direction" "column"
+        , Attr.style "text-align" "center"
         , Attr.style "opacity" ( String.fromFloat ease_3 )
-        , Attr.style "color" color3
+        -- , Attr.style "justify-content" "center"
+        -- , Attr.style "align-items" "center"
         ]
-        texts3
+        [ div
+            [ Attr.style "height" "32px"
+            , Attr.style "font-size" "32px"
+            , Attr.style "color" color3
+            ]
+            [ text text3 ]
+        , div
+            [ Attr.style "height" "12px" ]
+            []
+        , div
+            [ Attr.style "height" "32px"
+            , Attr.style "font-size" "20px"
+            ]
+            [ text "The area of the green square is a^2" ]
+        ]
     ]
 
 
