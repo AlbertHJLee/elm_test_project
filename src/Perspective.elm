@@ -142,25 +142,46 @@ view model =
     ]
 
 
+viewParams =
+  { window_width = 700
+  , window_height = 700
+  , bgcolor = "#186BB4"
+  }
+
+
+toPx length =
+  ( String.fromFloat length ) ++ "px"
+
+
 viewObjects model =
   let
     objects = ( getObjects )
   in
   div
-    [ Attr.style "width" "700px"
-    , Attr.style "height" "700px"
+    [ Attr.style "width" ( toPx viewParams.window_width )
+    , Attr.style "height" ( toPx viewParams.window_height )
     , Attr.style "background-color" "#808080"
     , Attr.style "margin" "auto"
     ]
     [ Svg.svg
-        [ width "600px"
-        , height "500px"
+        [ width ( toPx viewParams.window_width )
+        , height ( toPx viewParams.window_height )
         ]
         (
+          [ viewBackground ] ++
           ( List.concat ( List.map viewPolygonMasked objects ) ) ++
           []  -- Placeholder for future content
         )
     ]
+
+
+viewBackground =
+  Svg.rect
+    [ width ( toPx viewParams.window_width )
+    , height ( toPx viewParams.window_height )
+    , fill viewParams.bgcolor
+    ]
+    []
 
 
 getTextFromVec vec4 =
@@ -247,19 +268,30 @@ makePolygonMasked vectorlist masklist =
   }
 
 
+makePolyFrame x y outside inside =
+  let
+    frameWidth = (outside - inside) / 2
+    xi = x + frameWidth
+    yi = y + frameWidth
+  in
+  makePolygonMasked
+    [ ( vector x y 0 ), ( vector (x+outside) y 0 ), ( vector (x+outside) (y+outside) 0 ), ( vector x (y+outside) 0 ) ]
+    [ ( vector xi yi 0 ), ( vector (xi+inside) yi 0 ), ( vector (xi+inside) (yi+inside) 0 ), ( vector xi (yi+inside) 0 ) ]
+
+
 getObjects : List ( PolygonM )
 getObjects =
   let
+    cx = viewParams.window_width / 2
+    cy = viewParams.window_height / 2
     d = 20
-    d1 = 400
-    d2 = 200
-    x1 = 100
-    y1 = 100
+    s1 = 400
+    s2 = 200
+    x1 = cx - s1 / 2
+    y1 = cy - s1 / 2
   in
-  [ makePolygon [ ( vector 60 4 0), ( vector 60 60 0 ), ( vector 120 60 0 ), ( vector 120 4 0 ) ]
-  , makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
+  [ makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
   , makePolygon [ ( vector 0 0 0), ( vector 0 d 0 ), ( vector d d 0 ), ( vector d 0 0 ) ]
-  , makePolygonMasked
-      [ ( vector 0 0 0), ( vector 0 d1 0 ), ( vector d1 d1 0 ), ( vector d1 0 0 ) ]
-      [ ( vector x1 y1 0), ( vector (x1+d2) y1 0 ), ( vector (x1+d2) (y1+d2) 0 ), ( vector x1 (y1+d2) 0 ) ]
+  , makePolyFrame x1 y1 s1 s2
+  , makePolyFrame (x1+d) (y1+d) s1 s2
   ]
