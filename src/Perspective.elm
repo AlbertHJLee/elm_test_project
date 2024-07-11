@@ -158,28 +158,9 @@ viewObjects model =
         ]
         (
           ( List.concat ( List.map viewPolygonMasked objects ) ) ++
-          [ Svg.circle
-              [ cx "50"
-              , cy "50"
-              , r "40"
-              , fill "red"
-              ]
-              []
-          ] ++
-          [ Svg.defs
-              []
-              [ Svg.mask [ id "myMask" ]
-                  [ Svg.circle [ cx "50", cy "50", r "40", fill "white" ] []
-                  ]
-              ]
-          , Svg.rect
-              [ x "60", y "4", width "60", height "56", fill "blue", mask "url(#myMask)" ]
-              []
-          ]
+          []  -- Placeholder for future content
         )
     ]
-
--- ( text ( String.concat test_text ) )
 
 
 getTextFromVec vec4 =
@@ -189,21 +170,25 @@ getTextFromVec vec4 =
   ( String.fromFloat r.x ) ++ "," ++ ( String.fromFloat r.y ) ++ " "
 
 
-viewPolygon poly color =
+viewPolygon poly color mask_id =
   let
-    data = { x = 0, y = 0 }
-    transform_text =
-      "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++ ")"
     points_text =
       String.concat ( List.map getTextFromVec poly )
+    mask_attr =
+      case mask_id of
+        "" ->
+          []
+        _ ->
+          [ mask ( "url(#" ++ mask_id ++ ")" ) ]
   in
   Svg.polygon
-    [ points points_text  -- "0,0 80,60 0,60 "  --
-    , transform transform_text
-    , fill color
-    , fillOpacity "1.0"
-    , strokeWidth "0"
-    ]
+    ( [ points points_text
+      , fill color
+      , fillOpacity "1.0"
+      , strokeWidth "0"
+      ]
+      ++ mask_attr
+    )
     []
 
 
@@ -219,26 +204,15 @@ viewPolygonMasked polygon =
         Just mask ->
           [ Svg.defs []
               [ Svg.mask [ id "mask1" ]
-                  [ ( viewPolygon polygon.poly "white" )
-                  , ( viewPolygon mask "black" )
+                  [ ( viewPolygon polygon.poly "white" "" )
+                  , ( viewPolygon mask "black" "" )
                   ]
               ]
           ]
   in
   mask_placeholder ++
-  [ Svg.polygon
-      [ points points_text
-      , fill "#c0c0ff"
-      , fillOpacity "1.0"
-      , strokeWidth "0"
-      , mask "url(#mask1)"
-      ]
-      []
-  ]
+  [ ( viewPolygon polygon.poly "#c0c0ff" "mask1" ) ]
 
-
-type alias Polygon =
-  List V4.Vec4
 
 type alias PolygonM =
   { poly : List V4.Vec4
@@ -264,6 +238,7 @@ makePolygon vectorlist =
   { poly = List.map ( \v -> V4.vec4 v.x v.y v.z 1.0 ) vectorlist
   , mask = Nothing
   }
+
 
 makePolygonMasked : List ( Vector ) -> List ( Vector ) -> PolygonM
 makePolygonMasked vectorlist masklist =
