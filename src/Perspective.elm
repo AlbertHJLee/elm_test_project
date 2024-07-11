@@ -136,11 +136,6 @@ view model =
     , Attr.style "background-color" "#f0f0f0"
     ]
     [ div
-        -- [ Attr.style "width" "200px"
-        -- , Attr.style "height" "20px"
-        -- , Attr.style "background-color" "#444444"
-        -- , Attr.style "margin" "auto"
-        -- ]
         []
         []
     , viewObjects model
@@ -149,13 +144,7 @@ view model =
 
 viewObjects model =
   let
-    d = 20
-    objects =
-      [ makePolygon [ ( vector 0 0 0), ( vector 0 d 0 ), ( vector d d 0 ), ( vector d 0 0 ) ]
-      ]
-    -- objects = ( getObjects )
-    test_text =
-      List.map ( \o -> String.concat ( List.map getTextFromVec o ) ) objects
+    objects = ( getObjects )
   in
   div
     [ Attr.style "width" "700px"
@@ -163,13 +152,12 @@ viewObjects model =
     , Attr.style "background-color" "#808080"
     , Attr.style "margin" "auto"
     ]
-    [ ( text ( String.concat test_text ) )
-    , Svg.svg
+    [ Svg.svg
         [ width "600px"
         , height "500px"
         ]
         (
-          ( List.map viewPolygon objects ) ++
+          ( List.concat ( List.map viewPolygonMasked objects ) ) ++
           [ Svg.circle
               [ cx "50"
               , cy "50"
@@ -178,23 +166,32 @@ viewObjects model =
               ]
               []
           ] ++
-          ( List.map viewText objects )
+          [ Svg.defs
+              []
+              [ Svg.mask [ id "myMask" ]
+                  [ Svg.circle [ cx "50", cy "50", r "40", fill "white" ] []
+                  ]
+              ]
+          , Svg.rect
+              [ x "60", y "4", width "60", height "56", fill "blue", mask "url(#myMask)" ]
+              []
+          ]
         )
     ]
+
+-- ( text ( String.concat test_text ) )
 
 
 getTextFromVec vec4 =
   let
-    vecrec = ( V4.toRecord vec4 )
-    x = vecrec.x
-    y = vecrec.y
+    r = V4.toRecord vec4
   in
-  ( String.fromFloat x ) ++ "," ++ ( String.fromFloat y ) ++ " "
+  ( String.fromFloat r.x ) ++ "," ++ ( String.fromFloat r.y ) ++ " "
 
 
-viewPolygon poly =
+viewPolygon poly color =
   let
-    data = { x = 100, y = 100 }
+    data = { x = 0, y = 0 }
     transform_text =
       "translate(" ++ (String.fromFloat data.x) ++ "," ++ (String.fromFloat data.y) ++ ")"
     points_text =
@@ -203,25 +200,50 @@ viewPolygon poly =
   Svg.polygon
     [ points points_text  -- "0,0 80,60 0,60 "  --
     , transform transform_text
-    , fill "#c0c0ff"
+    , fill color
     , fillOpacity "1.0"
     , strokeWidth "0"
     ]
-    [ text ( "test text" ++ points_text ) ]
+    []
 
 
-viewText poly =
+viewPolygonMasked : PolygonM -> List (Svg.Svg msg)
+viewPolygonMasked polygon =
   let
     points_text =
-      String.concat ( List.map getTextFromVec poly )
+      String.concat ( List.map getTextFromVec polygon.poly )
+    mask_placeholder =
+      case polygon.mask of
+        Nothing ->
+          []
+        Just mask ->
+          [ Svg.defs []
+              [ Svg.mask [ id "mask1" ]
+                  [ ( viewPolygon polygon.poly "white" )
+                  , ( viewPolygon mask "black" )
+                  ]
+              ]
+          ]
   in
-  Svg.text_
-    []
-    [ text ( "viewtext test" ++ points_text ) ]
+  mask_placeholder ++
+  [ Svg.polygon
+      [ points points_text
+      , fill "#c0c0ff"
+      , fillOpacity "1.0"
+      , strokeWidth "0"
+      , mask "url(#mask1)"
+      ]
+      []
+  ]
 
 
 type alias Polygon =
   List V4.Vec4
+
+type alias PolygonM =
+  { poly : List V4.Vec4
+  , mask : Maybe ( List V4.Vec4 )
+  }
 
 
 type alias Vector =
@@ -237,16 +259,32 @@ vector vx vy vz =
   }
 
 
-makePolygon : List ( Vector ) -> Polygon
+makePolygon : List ( Vector ) -> PolygonM
 makePolygon vectorlist =
-  List.map ( \v -> V4.vec4 v.x v.y v.z 1.0 ) vectorlist
+  { poly = List.map ( \v -> V4.vec4 v.x v.y v.z 1.0 ) vectorlist
+  , mask = Nothing
+  }
+
+makePolygonMasked : List ( Vector ) -> List ( Vector ) -> PolygonM
+makePolygonMasked vectorlist masklist =
+  { poly = List.map ( \v -> V4.vec4 v.x v.y v.z 1.0 ) vectorlist
+  , mask = Just ( List.map ( \v -> V4.vec4 v.x v.y v.z 1.0 ) masklist )
+  }
 
 
-getObjects : List ( Polygon )
+getObjects : List ( PolygonM )
 getObjects =
   let
     d = 20
+    d1 = 400
+    d2 = 200
+    x1 = 100
+    y1 = 100
   in
-  [ makePolygon [ ( vector 0 0 0), ( vector 0 d 0 ), ( vector d d 0 ), ( vector d 0 0 ) ]
+  [ makePolygon [ ( vector 60 4 0), ( vector 60 60 0 ), ( vector 120 60 0 ), ( vector 120 4 0 ) ]
   , makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
+  , makePolygon [ ( vector 0 0 0), ( vector 0 d 0 ), ( vector d d 0 ), ( vector d 0 0 ) ]
+  , makePolygonMasked
+      [ ( vector 0 0 0), ( vector 0 d1 0 ), ( vector d1 d1 0 ), ( vector d1 0 0 ) ]
+      [ ( vector x1 y1 0), ( vector (x1+d2) y1 0 ), ( vector (x1+d2) (y1+d2) 0 ), ( vector x1 (y1+d2) 0 ) ]
   ]
