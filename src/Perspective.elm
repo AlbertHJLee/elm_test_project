@@ -80,7 +80,7 @@ type alias Keys =
 default_model : Model
 default_model =
   { mode = Iso
-  , eye = V4.vec4 12 12 -40 0
+  , eye = V4.vec4 12 12 -24 0
   , width = 600
   , height = 600
   }
@@ -103,14 +103,18 @@ update msg model  =
   ( model, Cmd.none )
 
 
+{-|
+In isomorphic transformations, the eye is technically infinitely far away,
+but here we will use a finite vector to determine the direction of the eye.
+-}
 transformVectorIso : V4.Vec4 -> V4.Vec4 -> V4.Vec4
 transformVectorIso eye vector_in =
   let
     e = V4.toRecord eye
     v = V4.toRecord vector_in
     v_new =
-      { v | x = v.x + e.x * v.z
-          , y = v.y + e.y * v.z
+      { v | x = v.x - e.x / e.z * v.z
+          , y = v.y - e.y / e.z * v.z
       }
   in
   V4.fromRecord v_new
@@ -351,7 +355,9 @@ makeFrameStack =
     y1 = cy - s1 / 2
     z1 = 0
     n = 4
-    z_values = List.range z1 (z1 + n - 1)
+    z_spacing = 96
+    z_i = List.range z1 (z1 + n - 1)
+    z_values = List.map ( \z -> z * z_spacing ) z_i
   in
   List.map (\z -> makePolyFrame x1 y1 (toFloat z) s1 s2 ) z_values
 
@@ -379,8 +385,6 @@ getObjects =
     y1 = cy - s1 / 2
   in
   [ makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
-  , makePolygon [ ( vector 0 0 0), ( vector 0 d 0 ), ( vector d d 0 ), ( vector d 0 0 ) ]
-  , makePolyFrame x1 y1 0 s1 s2
   , makePolyFrame (x1+d) (y1+d) 0 s1 s2
   ] ++
   makeFrameStack
