@@ -21,6 +21,8 @@ import Ease
 import Math.Vector4 as V4
 import Math.Matrix4 as M4
 
+import Hex
+
 
 
 
@@ -249,7 +251,8 @@ addMaskIds polygons =
     n_polygons = List.length polygons
     ids = List.range 1 n_polygons
     id_texts = List.map (\id -> "mask" ++ ( String.fromInt id ) ) ids
-    polygonsWithIDs = List.concat ( List.map2 viewPolygonMasked polygons id_texts )
+    colors = List.map colorByPosition polygons
+    polygonsWithIDs = List.concat ( List.map3 viewPolygonMasked polygons colors id_texts )
   in
   polygonsWithIDs
 
@@ -283,8 +286,8 @@ viewPolygon poly color mask_id =
     []
 
 
-viewPolygonMasked : PolygonM -> String -> List (Svg.Svg msg)
-viewPolygonMasked polygon mask_id =
+viewPolygonMasked : PolygonM -> String -> String -> List (Svg.Svg msg)
+viewPolygonMasked polygon color mask_id =
   let
     points_text =
       String.concat ( List.map getTextFromVec polygon.poly )
@@ -302,7 +305,53 @@ viewPolygonMasked polygon mask_id =
           ]
   in
   mask_placeholder ++
-  [ ( viewPolygon polygon.poly "#c0c0ff" mask_id ) ]
+  [ ( viewPolygon polygon.poly color mask_id ) ]
+
+
+colorByPosition : PolygonM -> String
+colorByPosition polygon =
+  let
+    -- sky color: "#186BB4"
+    -- polygon color: "#f8f8f8"
+    rdec = Hex.fromString "18"
+    gdec = Hex.fromString "6b"
+    bdec = Hex.fromString "b4"
+    rInt =
+      case rdec of
+        Ok value ->
+          value
+        _ ->
+          24
+    gInt =
+      case rdec of
+        Ok value ->
+          value
+        _ ->
+          107
+    bInt =
+      case rdec of
+        Ok value ->
+          value
+        _ ->
+          180
+    poly = polygon.poly
+    z =
+      case ( List.head poly ) of
+        Just v ->
+          V4.getZ v
+        _ ->
+          0
+    fade = 0.999 ^ z
+    r = interpolate ( toFloat rInt ) 248 fade
+    g = interpolate ( toFloat gInt ) 248 fade
+    b = interpolate ( toFloat bInt ) 248 fade
+  in
+  "#" ++ ( Hex.toString (round r) ) ++ ( Hex.toString (round g) ) ++ ( Hex.toString (round b) )
+
+
+interpolate : Float -> Float -> Float -> Float
+interpolate x1 x2 theta =
+  x1 + (x2 - x1) * theta
 
 
 
@@ -356,8 +405,9 @@ makeFrameStack =
     z1 = 0
     n = 4
     z_spacing = 96
-    z_i = List.range z1 (z1 + n - 1)
-    z_values = List.map ( \z -> z * z_spacing ) z_i
+    z_i = List.range 1 n
+    z_max = z1 + n
+    z_values = List.map ( \z -> (z_max - z) * z_spacing ) z_i
   in
   List.map (\z -> makePolyFrame x1 y1 (toFloat z) s1 s2 ) z_values
 
