@@ -24,7 +24,9 @@ import Math.Matrix4 as M4
 
 
 
+--
 -- MAIN
+--
 
 
 main =
@@ -38,7 +40,9 @@ main =
 
 
 
+--
 -- MODEL
+--
 
 
 type alias Model =
@@ -76,7 +80,7 @@ type alias Keys =
 default_model : Model
 default_model =
   { mode = Iso
-  , eye = V4.vec4 0 0 0 0
+  , eye = V4.vec4 12 12 -40 0
   , width = 600
   , height = 600
   }
@@ -89,7 +93,9 @@ init _ =
 
 
 
+--
 -- UPDATE
+--
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -97,9 +103,53 @@ update msg model  =
   ( model, Cmd.none )
 
 
+transformVectorIso : V4.Vec4 -> V4.Vec4 -> V4.Vec4
+transformVectorIso eye vector_in =
+  let
+    e = V4.toRecord eye
+    v = V4.toRecord vector_in
+    v_new =
+      { v | x = v.x + e.x * v.z
+          , y = v.y + e.y * v.z
+      }
+  in
+  V4.fromRecord v_new
 
 
+transformPolygonIso : V4.Vec4 -> PolygonM -> PolygonM
+transformPolygonIso eye polygon =
+  let
+    poly_vectors = polygon.poly
+    new_p_vectors = List.map ( \v -> transformVectorIso eye v ) poly_vectors
+    new_m_vectors =
+      case polygon.mask of
+        Nothing ->
+          Nothing
+        Just mask ->
+          Just ( List.map ( \v -> transformVectorIso eye v ) mask )
+    -- mask_vectors = polygon.mask
+    -- new_m_vectors = List.map ( \v -> transformVectorIso eye v ) mask_vectors
+  in
+  { polygon
+      | poly = new_p_vectors
+      , mask = new_m_vectors
+  }
+
+
+transformIso : Model -> List PolygonM -> List PolygonM
+transformIso model polygons =
+  let
+    eye = model.eye
+    new_polygons = List.map ( \p -> transformPolygonIso eye p ) polygons
+  in
+  new_polygons
+
+
+
+
+--
 -- SUBSCRIPTIONS
+--
 
 
 subscriptions : Model -> Sub Msg
@@ -115,7 +165,9 @@ subscriptions model =
 
 
 
+--
 -- VIEW
+--
 
 
 view : Model -> Html Msg
@@ -156,6 +208,10 @@ toPx length =
 viewObjects model =
   let
     objects = ( getObjects )
+    -- Transform and Project polygons
+    polygonsTransformed = transformIso model objects
+    -- Prepare a unique integer ID for each masked polygon
+    polygonsWithIDs = addMaskIds polygonsTransformed
   in
   div
     [ Attr.style "width" ( toPx viewParams.window_width )
@@ -169,7 +225,7 @@ viewObjects model =
         ]
         (
           [ viewBackground ] ++
-          ( List.concat ( List.map viewPolygonMasked objects ) ) ++
+          polygonsWithIDs ++
           []  -- Placeholder for future content
         )
     ]
@@ -182,6 +238,16 @@ viewBackground =
     , fill viewParams.bgcolor
     ]
     []
+
+
+addMaskIds polygons =
+  let
+    n_polygons = List.length polygons
+    ids = List.range 1 n_polygons
+    id_texts = List.map (\id -> "mask" ++ ( String.fromInt id ) ) ids
+    polygonsWithIDs = List.concat ( List.map2 viewPolygonMasked polygons id_texts )
+  in
+  polygonsWithIDs
 
 
 getTextFromVec vec4 =
@@ -213,8 +279,8 @@ viewPolygon poly color mask_id =
     []
 
 
-viewPolygonMasked : PolygonM -> List (Svg.Svg msg)
-viewPolygonMasked polygon =
+viewPolygonMasked : PolygonM -> String -> List (Svg.Svg msg)
+viewPolygonMasked polygon mask_id =
   let
     points_text =
       String.concat ( List.map getTextFromVec polygon.poly )
@@ -224,7 +290,7 @@ viewPolygonMasked polygon =
           []
         Just mask ->
           [ Svg.defs []
-              [ Svg.mask [ id "mask1" ]
+              [ Svg.mask [ id mask_id ]
                   [ ( viewPolygon polygon.poly "white" "" )
                   , ( viewPolygon mask "black" "" )
                   ]
@@ -232,7 +298,14 @@ viewPolygonMasked polygon =
           ]
   in
   mask_placeholder ++
-  [ ( viewPolygon polygon.poly "#c0c0ff" "mask1" ) ]
+  [ ( viewPolygon polygon.poly "#c0c0ff" mask_id ) ]
+
+
+
+
+--
+-- POLYGONS
+--
 
 
 type alias PolygonM =
@@ -268,15 +341,30 @@ makePolygonMasked vectorlist masklist =
   }
 
 
-makePolyFrame x y outside inside =
+makeFrameStack =
+  let
+    cx = viewParams.window_width / 2
+    cy = viewParams.window_height / 2
+    s1 = 400
+    s2 = 200
+    x1 = cx - s1 / 2
+    y1 = cy - s1 / 2
+    z1 = 0
+    n = 4
+    z_values = List.range z1 (z1 + n - 1)
+  in
+  List.map (\z -> makePolyFrame x1 y1 (toFloat z) s1 s2 ) z_values
+
+
+makePolyFrame x y z outside inside =
   let
     frameWidth = (outside - inside) / 2
     xi = x + frameWidth
     yi = y + frameWidth
   in
   makePolygonMasked
-    [ ( vector x y 0 ), ( vector (x+outside) y 0 ), ( vector (x+outside) (y+outside) 0 ), ( vector x (y+outside) 0 ) ]
-    [ ( vector xi yi 0 ), ( vector (xi+inside) yi 0 ), ( vector (xi+inside) (yi+inside) 0 ), ( vector xi (yi+inside) 0 ) ]
+    [ ( vector x y z ), ( vector (x+outside) y z ), ( vector (x+outside) (y+outside) z ), ( vector x (y+outside) z ) ]
+    [ ( vector xi yi z ), ( vector (xi+inside) yi z ), ( vector (xi+inside) (yi+inside) z ), ( vector xi (yi+inside) z ) ]
 
 
 getObjects : List ( PolygonM )
@@ -292,6 +380,7 @@ getObjects =
   in
   [ makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
   , makePolygon [ ( vector 0 0 0), ( vector 0 d 0 ), ( vector d d 0 ), ( vector d 0 0 ) ]
-  , makePolyFrame x1 y1 s1 s2
-  , makePolyFrame (x1+d) (y1+d) s1 s2
-  ]
+  , makePolyFrame x1 y1 0 s1 s2
+  , makePolyFrame (x1+d) (y1+d) 0 s1 s2
+  ] ++
+  makeFrameStack
