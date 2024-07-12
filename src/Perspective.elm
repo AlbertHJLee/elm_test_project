@@ -52,6 +52,7 @@ type alias Model =
   , eye : V4.Vec4
   , width : Float
   , height : Float
+  , keys : Keys
   }
 
 
@@ -74,17 +75,29 @@ type alias Keys =
   { up : Bool
   , left : Bool
   , down : Bool
+  , right : Bool
+  , space : Bool
   , z : Bool
   , x : Bool
+  , other : Bool
+  }
+
+
+hyperParams =
+  { maxval = 12
   }
 
 
 default_model : Model
 default_model =
+  let
+    hv = hyperParams.maxval / 2
+  in
   { mode = Iso
-  , eye = V4.vec4 12 12 -24 0
+  , eye = V4.vec4 hv hv ( -4 * hv ) 0
   , width = 600
   , height = 600
+  , keys = Keys False False False False False False False False
   }
 
 
@@ -102,12 +115,72 @@ init _ =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model  =
-  ( model, Cmd.none )
+  case msg of
+    DoNothing ->
+      ( model, Cmd.none )
+    KeyChanged isDown key ->
+      ( { model | keys = updateKeys isDown key model.keys }
+      , Cmd.none
+      )
+    TimeDelta dt ->
+      ( ( updateEye model dt )
+      , Cmd.none
+      )
+    Resized x y ->
+      ( model, Cmd.none )
+    VisibilityChanged v ->
+      ( model, Cmd.none )
+
+
+updateKeys : Bool -> String -> Keys -> Keys
+updateKeys isDown key keys =
+  case key of
+    " "          -> { keys | space = isDown }
+    "ArrowUp"    -> { keys | up    = isDown }
+    "ArrowLeft"  -> { keys | left  = isDown }
+    "ArrowDown"  -> { keys | down  = isDown }
+    "ArrowRight" -> { keys | right = isDown }
+    _            -> { keys | other = isDown }
+
+
+anyDown keys =
+  keys.space || keys.up || keys.left || keys.down || keys.right
+
+
+updateEye model dt =
+  let
+    e = model.eye
+    k = model.keys
+    fromKey isDown =
+      if isDown then 1.0 else 0.0
+    maxval = hyperParams.maxval
+    v =
+      if ( not ( anyDown k ) )
+        then
+          V4.vec4 ( maxval / 2 ) ( maxval / 2 ) -24 0
+      else if k.space
+        then
+          V4.vec4 0 0 -24 0
+        else
+          V4.vec4
+            ( maxval * ( ( fromKey k.right ) - ( fromKey k.left ) ) )
+            ( maxval * ( ( fromKey k.down ) - ( fromKey k.up ) ) )
+            -24
+            0
+    d = V4.sub v e
+    dsec = dt / 1000.0
+    inverse_damping = 4.0
+    e_new = V4.add e ( V4.scale ( dsec * inverse_damping ) d )
+  in
+    { model | eye = e_new }
 
 
 {-|
 In isomorphic transformations, the eye is technically infinitely far away,
 but here we will use a finite vector to determine the direction of the eye.
+--
+Also, the transform functions are called in ( view ) but we list them here because
+they are directly dependent on model.eye, which is updated by ( update ).
 -}
 transformVectorIso : V4.Vec4 -> V4.Vec4 -> V4.Vec4
 transformVectorIso eye vector_in =
@@ -323,13 +396,13 @@ colorByPosition polygon =
         _ ->
           24
     gInt =
-      case rdec of
+      case gdec of
         Ok value ->
           value
         _ ->
           107
     bInt =
-      case rdec of
+      case bdec of
         Ok value ->
           value
         _ ->
@@ -341,10 +414,11 @@ colorByPosition polygon =
           V4.getZ v
         _ ->
           0
-    fade = 0.999 ^ z
-    r = interpolate ( toFloat rInt ) 248 fade
-    g = interpolate ( toFloat gInt ) 248 fade
-    b = interpolate ( toFloat bInt ) 248 fade
+    fade = 0.9995 ^ z
+    brightness = 255  -- 248
+    r = interpolate ( toFloat rInt ) brightness fade
+    g = interpolate ( toFloat gInt ) brightness fade
+    b = interpolate ( toFloat bInt ) brightness fade
   in
   "#" ++ ( Hex.toString (round r) ) ++ ( Hex.toString (round g) ) ++ ( Hex.toString (round b) )
 
@@ -435,6 +509,6 @@ getObjects =
     y1 = cy - s1 / 2
   in
   [ makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
-  , makePolyFrame (x1+d) (y1+d) 0 s1 s2
+  , makePolygon [ ( vector 26 4 0), ( vector 26 (4+d) 0 ), ( vector (26+d) (4+d) 0 ) ]
   ] ++
   makeFrameStack
