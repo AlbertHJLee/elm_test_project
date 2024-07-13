@@ -98,6 +98,7 @@ vectorParams =
   , focal_length = ( hyperParams.frame_inside * 2 ) * 2.0  -- frame_outside * atan
   , inverse_damping = 4.0
   , default_atan = 2.0
+  , z_spacing = 96
   }
 
 
@@ -108,6 +109,8 @@ viewParams =
   , fade_factor = 0.999
   , frame_outside = hyperParams.frame_inside * 2
   , frame_inside = hyperParams.frame_inside
+  , cross_length = 20
+  , stroke_halfwidth = 1
   }
 
 
@@ -600,7 +603,7 @@ makeFrameStack =
     y1 = -s1 / 2
     z1 = 0
     n = 4
-    z_spacing = 96
+    z_spacing = vectorParams.z_spacing
     z_i = List.range 1 n
     z_max = z1 + n
     z_values = List.map ( \z -> (z_max - z) * z_spacing ) z_i
@@ -637,7 +640,31 @@ makeLogo =
   ]
 
 
+makeCross z =
+  let
+    sh = viewParams.stroke_halfwidth
+    cl = viewParams.cross_length
+    vlist =
+      [ ( vector sh cl z ), ( vector sh sh z ), ( vector cl sh z )
+      , ( vector cl -sh z ), ( vector sh -sh z ), ( vector sh -cl z )
+      , ( vector -sh -cl z ), ( vector -sh -sh z ), ( vector -cl -sh z )
+      , ( vector -cl sh z ), ( vector -sh sh z ), ( vector -sh cl z )
+      ]
+  in
+  makePolygon vlist
+
+
+makeCrossStack =
+  let
+    n = 2
+    spacing = 2 * vectorParams.z_spacing
+  in
+  ( List.range 0 n )
+      |> List.map ( \z -> toFloat ( -z * spacing ) )
+      |> List.map makeCross
+
+
 getObjects : List ( PolygonM )
 getObjects =
-  makeLogo ++
-  makeFrameStack
+  makeFrameStack ++
+  makeCrossStack
