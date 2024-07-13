@@ -182,9 +182,10 @@ but here we will use a finite vector to determine the direction of the eye.
 Also, the transform functions are called in ( view ) but we list them here because
 they are directly dependent on model.eye, which is updated by ( update ).
 -}
-transformVectorIso : V4.Vec4 -> V4.Vec4 -> V4.Vec4
-transformVectorIso eye vector_in =
+transformVectorIso : Model -> V4.Vec4 -> V4.Vec4
+transformVectorIso model vector_in =
   let
+    eye = model.eye
     e = V4.toRecord eye
     v = V4.toRecord vector_in
     v_new =
@@ -195,19 +196,44 @@ transformVectorIso eye vector_in =
   V4.fromRecord v_new
 
 
-transformPolygonIso : V4.Vec4 -> PolygonM -> PolygonM
-transformPolygonIso eye polygon =
+transformVectorOne : Model -> V4.Vec4 -> V4.Vec4
+transformVectorOne model vector_in =
+  let
+    eye = model.eye
+    e = V4.toRecord eye
+    v = V4.toRecord vector_in
+    v_new =
+      { v | x = v.x - e.x / e.z * v.z
+          , y = v.y - e.y / e.z * v.z
+      }
+  in
+  V4.fromRecord v_new
+
+
+transformVector : Model -> V4.Vec4 -> V4.Vec4
+transformVector model vector_in =
+  case model.mode of
+    Iso ->
+      transformVectorIso model vector_in
+    OnePoint ->
+      transformVectorOne model vector_in
+    _ ->
+      transformVectorOne model vector_in
+
+
+transformPolygon : Model -> PolygonM -> PolygonM
+transformPolygon model polygon =
   let
     poly_vectors = polygon.poly
-    new_p_vectors = List.map ( \v -> transformVectorIso eye v ) poly_vectors
+    new_p_vectors = List.map ( \v -> transformVectorIso model v ) poly_vectors
     new_m_vectors =
       case polygon.mask of
         Nothing ->
           Nothing
         Just mask ->
-          Just ( List.map ( \v -> transformVectorIso eye v ) mask )
+          Just ( List.map ( \v -> transformVectorIso model v ) mask )
     -- mask_vectors = polygon.mask
-    -- new_m_vectors = List.map ( \v -> transformVectorIso eye v ) mask_vectors
+    -- new_m_vectors = List.map ( \v -> transformVectorIso model v ) mask_vectors
   in
   { polygon
       | poly = new_p_vectors
@@ -215,11 +241,11 @@ transformPolygonIso eye polygon =
   }
 
 
-transformIso : Model -> List PolygonM -> List PolygonM
-transformIso model polygons =
+transformObjects : Model -> List PolygonM -> List PolygonM
+transformObjects model polygons =
   let
-    eye = model.eye
-    new_polygons = List.map ( \p -> transformPolygonIso eye p ) polygons
+    -- eye = model.eye
+    new_polygons = List.map ( \p -> transformPolygon model p ) polygons
   in
   new_polygons
 
@@ -277,6 +303,7 @@ viewParams =
   { window_width = 700
   , window_height = 700
   , bgcolor = "#186BB4"
+  , fade_factor = 0.999
   }
 
 
@@ -288,7 +315,7 @@ viewObjects model =
   let
     objects = ( getObjects )
     -- Transform and Project polygons
-    polygonsTransformed = transformIso model objects
+    polygonsTransformed = transformObjects model objects
     -- Prepare a unique integer ID for each masked polygon
     polygonsWithIDs = addMaskIds polygonsTransformed
   in
@@ -414,7 +441,7 @@ colorByPosition polygon =
           V4.getZ v
         _ ->
           0
-    fade = 0.9995 ^ z
+    fade = ( viewParams.fade_factor ) ^ z
     brightness = 255  -- 248
     r = interpolate ( toFloat rInt ) brightness fade
     g = interpolate ( toFloat gInt ) brightness fade
