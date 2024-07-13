@@ -10,9 +10,7 @@ import Html exposing (Html, div, text)
 import Html.Events exposing (onClick, onInput)
 import Html.Attributes as Attr
 import Json.Decode as D
-import Time
 import Task
-import Array exposing (Array)
 
 import Svg
 import Svg.Attributes exposing (..)
@@ -69,6 +67,7 @@ type Msg
   | TimeDelta Float
   | Resized Float Float
   | VisibilityChanged E.Visibility
+  | ModeChanged String
 
 
 type alias Keys =
@@ -117,20 +116,32 @@ init _ =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model  =
   case msg of
+
     DoNothing ->
       ( model, Cmd.none )
+
     KeyChanged isDown key ->
       ( { model | keys = updateKeys isDown key model.keys }
-      , Cmd.none
+      , if ( isNumber key )
+        then Task.perform ModeChanged ( Task.succeed key )
+        else Cmd.none
       )
+
     TimeDelta dt ->
       ( ( updateEye model dt )
       , Cmd.none
       )
+
     Resized x y ->
       ( model, Cmd.none )
+
     VisibilityChanged v ->
       ( model, Cmd.none )
+
+    ModeChanged key ->
+      ( ( updateMode key model )
+      , Cmd.none
+      )
 
 
 updateKeys : Bool -> String -> Keys -> Keys
@@ -148,6 +159,29 @@ anyDown keys =
   keys.space || keys.up || keys.left || keys.down || keys.right
 
 
+isNumber : String -> Bool
+isNumber s =
+  case ( String.toInt s ) of
+    Just n ->
+      True
+    Nothing ->
+      False
+
+
+updateMode : String -> Model -> Model
+updateMode key model =
+  case key of
+    "1" ->
+      { model | mode = OnePoint }
+    "2" ->
+      { model | mode = TwoPoint }
+    "0" ->
+      { model | mode = Iso }
+    _ ->
+      model
+
+
+updateEye : Model -> Float -> Model
 updateEye model dt =
   let
     e = model.eye
@@ -158,7 +192,7 @@ updateEye model dt =
     v =
       if ( not ( anyDown k ) )
         then
-          V4.vec4 ( maxval / 2 ) ( maxval / 2 ) -24 0
+          V4.vec4 ( maxval / 2 ) ( maxval / 2 ) ( -2 * maxval ) 0
       else if k.space
         then
           V4.vec4 0 0 -24 0
@@ -244,15 +278,13 @@ transformPolygon : Model -> PolygonM -> PolygonM
 transformPolygon model polygon =
   let
     poly_vectors = polygon.poly
-    new_p_vectors = List.map ( \v -> transformVectorIso model v ) poly_vectors
+    new_p_vectors = List.map ( \v -> transformVector model v ) poly_vectors
     new_m_vectors =
       case polygon.mask of
         Nothing ->
           Nothing
         Just mask ->
-          Just ( List.map ( \v -> transformVectorIso model v ) mask )
-    -- mask_vectors = polygon.mask
-    -- new_m_vectors = List.map ( \v -> transformVectorIso model v ) mask_vectors
+          Just ( List.map ( \v -> transformVector model v ) mask )
   in
   { polygon
       | poly = new_p_vectors
@@ -263,7 +295,6 @@ transformPolygon model polygon =
 transformObjects : Model -> List PolygonM -> List PolygonM
 transformObjects model polygons =
   let
-    -- eye = model.eye
     new_polygons = List.map ( \p -> transformPolygon model p ) polygons
   in
   new_polygons
@@ -333,10 +364,15 @@ toPx length =
 viewObjects model =
   let
     objects = ( getObjects )
+
+    -- Get Colors based on positions
+    colors = List.map colorByPosition objects
+
     -- Transform and Project polygons
     polygonsTransformed = transformObjects model objects
-    -- Prepare a unique integer ID for each masked polygon
-    polygonsWithIDs = addMaskIds polygonsTransformed
+
+    -- Prepare a unique integer ID for each masked polygon and add colors
+    polygonsWithIDs = addMaskIds colors polygonsTransformed
   in
   div
     [ Attr.style "width" ( toPx viewParams.window_width )
@@ -365,12 +401,12 @@ viewBackground =
     []
 
 
-addMaskIds polygons =
+addMaskIds colors polygons =
   let
     n_polygons = List.length polygons
     ids = List.range 1 n_polygons
     id_texts = List.map (\id -> "mask" ++ ( String.fromInt id ) ) ids
-    colors = List.map colorByPosition polygons
+    -- colors = List.map colorByPosition polygons
     polygonsWithIDs = List.concat ( List.map3 viewPolygonMasked polygons colors id_texts )
   in
   polygonsWithIDs
