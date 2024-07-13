@@ -85,6 +85,7 @@ type alias Keys =
 
 hyperParams =
   { maxval = 12
+  , focal_length = viewParams.window_width
   }
 
 
@@ -200,14 +201,32 @@ transformVectorOne : Model -> V4.Vec4 -> V4.Vec4
 transformVectorOne model vector_in =
   let
     eye = model.eye
+    relative_position = V4.sub vector_in eye
+    r = V4.toRecord relative_position
     e = V4.toRecord eye
-    v = V4.toRecord vector_in
-    v_new =
-      { v | x = v.x - e.x / e.z * v.z
-          , y = v.y - e.y / e.z * v.z
-      }
+    f = hyperParams.focal_length
+
+    -- First transform r vector onto imaging plane
+    r_new = toImagePlaneOne f r
+
+    -- Then recenter image based on eye's position relative to origin
+    e_new = toImagePlaneOne f e
   in
-  V4.fromRecord v_new
+  -- Real image is r_new - e_new, but since this is flipped
+  -- we unflip when drawing the svg by using e_new - r_new instead
+  V4.sub ( V4.fromRecord e_new ) ( V4.fromRecord r_new )
+
+
+-- toImagePlaneOne : Float -> Vector -> Vector
+toImagePlaneOne f vector_record =
+  let
+    r = vector_record
+  in
+  { r
+      | x = -r.x / r.z * f
+      , y = -r.y / r.z * f
+      , z = -f
+    }
 
 
 transformVector : Model -> V4.Vec4 -> V4.Vec4
@@ -357,6 +376,7 @@ addMaskIds polygons =
   polygonsWithIDs
 
 
+getTextFromVec : V4.Vec4 -> String
 getTextFromVec vec4 =
   let
     r = V4.toRecord vec4
@@ -364,6 +384,7 @@ getTextFromVec vec4 =
   ( String.fromFloat r.x ) ++ "," ++ ( String.fromFloat r.y ) ++ " "
 
 
+reCenter : Float -> Float -> V4.Vec4 -> V4.Vec4
 reCenter cx cy vector_in =
   let
     v = V4.toRecord vector_in
@@ -372,6 +393,7 @@ reCenter cx cy vector_in =
     |> V4.fromRecord
 
 
+absoluteCoordinates : Polygon -> Polygon
 absoluteCoordinates polygon =
   let
     cx = viewParams.window_width / 2
@@ -520,8 +542,6 @@ makePolygonMasked vectorlist masklist =
 
 makeFrameStack =
   let
-    -- cx = viewParams.window_width / 2
-    -- cy = viewParams.window_height / 2
     s1 = 400
     s2 = 200
     x1 = -s1 / 2
