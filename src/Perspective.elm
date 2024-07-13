@@ -105,6 +105,7 @@ vectorParams =
 viewParams =
   { window_width = hyperParams.window_size
   , window_height = hyperParams.window_size
+  , menu_height = 300
   , bgcolor = "#186BB4"
   , fade_factor = 0.999
   , frame_outside = hyperParams.frame_inside * 2
@@ -235,7 +236,7 @@ updateEye model dt =
 
 
 {-|
-In isomorphic transformations, the eye is technically infinitely far away,
+In isometric transformations, the eye is technically infinitely far away,
 but here we will use a finite vector to determine the direction of the eye.
 --
 Also, the transform functions are called in ( view ) but we list them here because
@@ -370,14 +371,92 @@ view model =
     , Attr.style "background-color" "#f0f0f0"
     ]
     [ div
-        []
+        [ Attr.style "height" ( toPx viewParams.menu_height ) ]
         []
     , viewObjects model
+    , div
+        [ Attr.style "height" ( toPx viewParams.menu_height ) ]
+        ( viewControls model )
     ]
 
 
 toPx length =
   ( String.fromFloat length ) ++ "px"
+
+
+viewControls model =
+  let
+    mode = model.mode
+    mode_text =
+      case mode of
+        Iso ->
+          "isometric"
+        OnePoint ->
+          "one-point"
+        _ ->
+          "one-point"
+    font_attributes =
+      [ Attr.style "font-family" "monospace"
+      , Attr.style "user-select" "none"             -- Chrome, Edge, Firefox
+      , Attr.style "-webkit-user-select" "none"     -- Safari
+      , Attr.style "-webkit-touch-callout" "none"   -- iOS Safari
+      , Attr.style "font-size" ( toPx 20 )
+      ]
+    button_attributes color =
+      [ Attr.style "width" "40px"
+      , Attr.style "height" "40px"
+      , Attr.style "margin" "4px"
+      , Attr.style "border" ( "2px solid " ++ color )
+      , Attr.style "border-radius" "8px"
+      , Attr.style "display" "flex"
+      , Attr.style "align-items" "center"
+      , Attr.style "justify-content" "center"
+      ]
+    number_button n color =
+      div
+        (
+          button_attributes color ++
+          font_attributes   ++
+          [ Attr.style "color" color
+          , Attr.style "float" "left"
+          ]
+        )
+        [ text ( String.fromInt n ) ]
+    space_button color =
+      div
+        (
+          button_attributes color ++
+          font_attributes   ++
+          [ Attr.style "width" "160px"
+          , Attr.style "float" "left"
+          , Attr.style "margin-left" "104px"
+          , Attr.style "color" color
+          ]
+        )
+        [ text "space" ]
+    c_a = "#c0c0c0"
+    c_b = "#606060"
+  in
+  [ div
+      (
+        font_attributes ++
+        [ Attr.style "margin-top" ( toPx 24 )
+        , Attr.style "text-align" "center"
+        ]
+      )
+      [ text ( "Projection Mode: " ++ mode_text ) ]
+  , div
+      [ Attr.style "width" ( toPx viewParams.window_width )
+      , Attr.style "height" ( toPx 64 )
+      , Attr.style "margin-top" ( toPx 8 )
+      , Attr.style "overflow" "hidden"
+      ]
+      [ number_button 0 ( if mode == Iso then c_b else c_a )
+      , number_button 1 ( if mode == OnePoint then c_b else c_a )
+      , number_button 2 c_a
+      , space_button c_a
+      ]
+  ]
 
 
 viewObjects model =
