@@ -364,10 +364,29 @@ getTextFromVec vec4 =
   ( String.fromFloat r.x ) ++ "," ++ ( String.fromFloat r.y ) ++ " "
 
 
+reCenter cx cy vector_in =
+  let
+    v = V4.toRecord vector_in
+  in
+  { v | x = ( v.x + cx ), y = ( v.y + cy ) }
+    |> V4.fromRecord
+
+
+absoluteCoordinates polygon =
+  let
+    cx = viewParams.window_width / 2
+    cy = viewParams.window_height / 2
+  in
+  List.map
+    ( reCenter cx cy )
+    polygon
+
+
+viewPolygon : Polygon -> String -> String -> Svg.Svg msg
 viewPolygon poly color mask_id =
   let
     points_text =
-      String.concat ( List.map getTextFromVec poly )
+      String.concat ( List.map getTextFromVec ( absoluteCoordinates poly ) )
     mask_attr =
       case mask_id of
         "" ->
@@ -462,9 +481,13 @@ interpolate x1 x2 theta =
 --
 
 
+type alias Polygon =
+  List V4.Vec4
+
+
 type alias PolygonM =
-  { poly : List V4.Vec4
-  , mask : Maybe ( List V4.Vec4 )
+  { poly : Polygon
+  , mask : Maybe Polygon
   }
 
 
@@ -497,12 +520,12 @@ makePolygonMasked vectorlist masklist =
 
 makeFrameStack =
   let
-    cx = viewParams.window_width / 2
-    cy = viewParams.window_height / 2
+    -- cx = viewParams.window_width / 2
+    -- cy = viewParams.window_height / 2
     s1 = 400
     s2 = 200
-    x1 = cx - s1 / 2
-    y1 = cy - s1 / 2
+    x1 = -s1 / 2
+    y1 = -s1 / 2
     z1 = 0
     n = 4
     z_spacing = 96
@@ -524,18 +547,25 @@ makePolyFrame x y z outside inside =
     [ ( vector xi yi z ), ( vector (xi+inside) yi z ), ( vector (xi+inside) (yi+inside) z ), ( vector xi (yi+inside) z ) ]
 
 
-getObjects : List ( PolygonM )
-getObjects =
+reCenterVector : Float -> Float -> Vector -> Vector
+reCenterVector cx cy v =
+  { v | x = ( v.x + cx ), y = ( v.y + cy ) }
+
+
+makeLogo =
   let
     cx = viewParams.window_width / 2
     cy = viewParams.window_height / 2
     d = 20
-    s1 = 400
-    s2 = 200
-    x1 = cx - s1 / 2
-    y1 = cy - s1 / 2
+    vlist1 = [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
+    vlist2 = [ ( vector 26 4 0), ( vector 26 (4+d) 0 ), ( vector (26+d) (4+d) 0 ) ]
   in
-  [ makePolygon [ ( vector 4 4 0), ( vector 4 (4+d) 0 ), ( vector (4+d) (4+d) 0 ), ( vector (4+d) 4 0 ) ]
-  , makePolygon [ ( vector 26 4 0), ( vector 26 (4+d) 0 ), ( vector (26+d) (4+d) 0 ) ]
-  ] ++
+  [ makePolygon ( List.map ( reCenterVector -cx -cy ) vlist1 )
+  , makePolygon ( List.map ( reCenterVector -cx -cy ) vlist2 )
+  ]
+
+
+getObjects : List ( PolygonM )
+getObjects =
+  makeLogo ++
   makeFrameStack
