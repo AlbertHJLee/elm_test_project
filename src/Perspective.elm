@@ -83,18 +83,38 @@ type alias Keys =
 
 
 hyperParams =
-  { maxval = 12
-  , focal_length = viewParams.window_width
+  { maxval = 600
+  , window_size = 700
+  , frame_inside = 200
+  }
+
+
+vectorParams =
+  let
+    hv = hyperParams.maxval / 2
+  in
+  { default_eye = V4.vec4 hv hv ( -4 * hv ) 0
+  , max_val = hv * 2
+  , focal_length = ( hyperParams.frame_inside * 2 ) * 2.0  -- frame_outside * atan
+  , inverse_damping = 4.0
+  , default_atan = 2.0
+  }
+
+
+viewParams =
+  { window_width = hyperParams.window_size
+  , window_height = hyperParams.window_size
+  , bgcolor = "#186BB4"
+  , fade_factor = 0.999
+  , frame_outside = hyperParams.frame_inside * 2
+  , frame_inside = hyperParams.frame_inside
   }
 
 
 default_model : Model
 default_model =
-  let
-    hv = hyperParams.maxval / 2
-  in
   { mode = Iso
-  , eye = V4.vec4 hv hv ( -4 * hv ) 0
+  , eye = vectorParams.default_eye
   , width = 600
   , height = 600
   , keys = Keys False False False False False False False False
@@ -188,23 +208,24 @@ updateEye model dt =
     k = model.keys
     fromKey isDown =
       if isDown then 1.0 else 0.0
-    maxval = hyperParams.maxval
+    maxval = vectorParams.max_val
+    d_atan = vectorParams.default_atan
     v =
       if ( not ( anyDown k ) )
         then
-          V4.vec4 ( maxval / 2 ) ( maxval / 2 ) ( -2 * maxval ) 0
+          vectorParams.default_eye
       else if k.space
         then
-          V4.vec4 0 0 -24 0
+          V4.vec4 0 0 ( -d_atan * maxval ) 0
         else
           V4.vec4
             ( maxval * ( ( fromKey k.right ) - ( fromKey k.left ) ) )
             ( maxval * ( ( fromKey k.down ) - ( fromKey k.up ) ) )
-            -24
+            ( -d_atan * maxval )
             0
     d = V4.sub v e
     dsec = dt / 1000.0
-    inverse_damping = 4.0
+    inverse_damping = vectorParams.inverse_damping
     e_new = V4.add e ( V4.scale ( dsec * inverse_damping ) d )
   in
     { model | eye = e_new }
@@ -236,30 +257,33 @@ transformVectorOne model vector_in =
   let
     eye = model.eye
     relative_position = V4.sub vector_in eye
+    origin_relative = V4.negate eye
     r = V4.toRecord relative_position
-    e = V4.toRecord eye
-    f = hyperParams.focal_length
+    o = V4.toRecord origin_relative
+
+    -- Get Z coordinate of focal plane
+    f = V4.getZ vectorParams.default_eye
 
     -- First transform r vector onto imaging plane
     r_new = toImagePlaneOne f r
 
-    -- Then recenter image based on eye's position relative to origin
-    e_new = toImagePlaneOne f e
+    -- Then recenter image based on the origin's position relative to the eye
+    o_new = toImagePlaneOne f o
   in
-  -- Real image is r_new - e_new, but since this is flipped
-  -- we unflip when drawing the svg by using e_new - r_new instead
-  V4.sub ( V4.fromRecord e_new ) ( V4.fromRecord r_new )
+  -- Real image is r_new - o_new, but since this is flipped
+  -- we unflip when drawing the svg by using o_new - r_new instead
+  V4.sub ( V4.fromRecord o_new ) ( V4.fromRecord r_new )
 
 
 -- toImagePlaneOne : Float -> Vector -> Vector
 toImagePlaneOne f vector_record =
   let
-    r = vector_record
+    v = vector_record
   in
-  { r
-      | x = -r.x / r.z * f
-      , y = -r.y / r.z * f
-      , z = -f
+  { v
+      | x = v.x / v.z * f
+      , y = v.y / v.z * f
+      , z = f
     }
 
 
@@ -347,14 +371,6 @@ view model =
         []
     , viewObjects model
     ]
-
-
-viewParams =
-  { window_width = 700
-  , window_height = 700
-  , bgcolor = "#186BB4"
-  , fade_factor = 0.999
-  }
 
 
 toPx length =
@@ -578,8 +594,8 @@ makePolygonMasked vectorlist masklist =
 
 makeFrameStack =
   let
-    s1 = 400
-    s2 = 200
+    s1 = viewParams.frame_outside
+    s2 = viewParams.frame_inside
     x1 = -s1 / 2
     y1 = -s1 / 2
     z1 = 0
