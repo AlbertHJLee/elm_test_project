@@ -112,7 +112,33 @@ viewParams =
   , frame_inside = hyperParams.frame_inside
   , cross_length = 20
   , stroke_halfwidth = 1
+  , button_height = 40
+  , button_margin = 4
+  , button_stroke = 2
   }
+
+
+font_attributes =
+  [ Attr.style "font-family" "monospace"
+  , Attr.style "user-select" "none"             -- Chrome, Edge, Firefox
+  , Attr.style "-webkit-user-select" "none"     -- Safari
+  , Attr.style "-webkit-touch-callout" "none"   -- iOS Safari
+  , Attr.style "font-size" ( toPx 20 )
+  ]
+
+
+button_attributes color =
+    [ Attr.style "width" ( toPx viewParams.button_height )
+    , Attr.style "height" ( toPx viewParams.button_height )
+    , Attr.style "margin" ( toPx viewParams.button_margin )
+    , Attr.style "border" ( ( toPx viewParams.button_stroke ) ++ " solid " ++ color )
+    , Attr.style "border-radius" "8px"
+    , Attr.style "display" "flex"
+    , Attr.style "align-items" "center"
+    , Attr.style "justify-content" "center"
+    , Attr.style "float" "left"
+    , Attr.style "color" color
+    ]
 
 
 default_model : Model
@@ -395,45 +421,84 @@ viewControls model =
           "one-point"
         _ ->
           "one-point"
-    font_attributes =
-      [ Attr.style "font-family" "monospace"
-      , Attr.style "user-select" "none"             -- Chrome, Edge, Firefox
-      , Attr.style "-webkit-user-select" "none"     -- Safari
-      , Attr.style "-webkit-touch-callout" "none"   -- iOS Safari
-      , Attr.style "font-size" ( toPx 20 )
-      ]
-    button_attributes color =
-      [ Attr.style "width" "40px"
-      , Attr.style "height" "40px"
-      , Attr.style "margin" "4px"
-      , Attr.style "border" ( "2px solid " ++ color )
-      , Attr.style "border-radius" "8px"
-      , Attr.style "display" "flex"
-      , Attr.style "align-items" "center"
-      , Attr.style "justify-content" "center"
-      ]
     number_button n color =
       div
-        (
-          button_attributes color ++
-          font_attributes   ++
-          [ Attr.style "color" color
-          , Attr.style "float" "left"
-          ]
-        )
+        ( button_attributes color ++ font_attributes )
         [ text ( String.fromInt n ) ]
+    space_width = 160
+    space_left = 104
     space_button color =
       div
         (
           button_attributes color ++
-          font_attributes   ++
-          [ Attr.style "width" "160px"
-          , Attr.style "float" "left"
-          , Attr.style "margin-left" "104px"
-          , Attr.style "color" color
+          font_attributes         ++
+          [ Attr.style "width" ( toPx space_width )
+          , Attr.style "margin-left" ( toPx space_left )
           ]
         )
         [ text "space" ]
+    button_container_height =
+      viewParams.button_height + 2 * ( viewParams.button_stroke + viewParams.button_margin )
+    button_stack_width =
+      3 * viewParams.button_height + 6 * viewParams.button_stroke + 4 * viewParams.button_margin
+    space_text_left =
+      space_left + viewParams.button_margin
+    space_text_width =
+      space_width + 2 * viewParams.button_stroke
+    small_button_height = viewParams.button_height / 2 - viewParams.button_stroke
+    svg_arrow color angle =
+      div
+        [ Attr.style "margin" "0 auto"
+        , Attr.style "width" "20px"   -- ( toPx viewParams.button_height )
+        , Attr.style "height" "20px"  -- ( toPx viewParams.button_height )
+        ]
+        [
+          Svg.svg
+            [ width "20px"
+            , height "20px" ]
+            [ Svg.polygon
+                [ points "4,4 4,16 16,10"
+                , fill color
+                , transform ( "rotate(" ++ ( String.fromFloat angle ) ++ " 10,10)" ) ]
+                []
+            ]
+        ]
+    small_botton bdiv color =
+      div
+        (
+          button_attributes color ++
+          font_attributes         ++
+          [ Attr.style "height" ( toPx small_button_height )
+          , Attr.style "margin" "0 auto"
+          ]
+        )
+        [ bdiv ]
+    arrow_buttons color =
+      div
+        [ Attr.style "height" ( toPx button_container_height )
+        , Attr.style "margin-left" "100px"
+        , Attr.style "float" "left" ]
+        [ div
+            ( button_attributes color ++ font_attributes ++ [ Attr.style "margin-right" "0" ] )
+            [ svg_arrow c_a 180 ]
+            -- [ text "←" ]
+        , div
+            [ Attr.style "display" "flex"
+            , Attr.style "align-items" "center"
+            , Attr.style "justify-content" "center"
+            , Attr.style "float" "left"
+            , Attr.style "flex-direction" "column"
+            , Attr.style "height" ( toPx button_container_height )
+            , Attr.style "margin" "0"
+            ]
+            [ small_botton ( svg_arrow c_a -90 ) c_a    -- "↑" c_a
+            , small_botton ( svg_arrow c_a  90 ) c_a    -- "↓" c_a
+            ]
+        , div
+            ( button_attributes color ++ font_attributes ++ [ Attr.style "margin-left" "0" ] )
+            [ svg_arrow c_a 0 ]
+            -- [ text "→" ]
+        ]
     c_a = "#c0c0c0"
     c_b = "#606060"
   in
@@ -444,10 +509,10 @@ viewControls model =
         , Attr.style "text-align" "center"
         ]
       )
-      [ text ( "Projection Mode: " ++ mode_text ) ]
+      [ text ( "Perspective Mode: " ++ mode_text ) ]
   , div
       [ Attr.style "width" ( toPx viewParams.window_width )
-      , Attr.style "height" ( toPx 64 )
+      , Attr.style "height" ( toPx button_container_height )
       , Attr.style "margin-top" ( toPx 8 )
       , Attr.style "overflow" "hidden"
       ]
@@ -455,6 +520,30 @@ viewControls model =
       , number_button 1 ( if mode == OnePoint then c_b else c_a )
       , number_button 2 c_a
       , space_button c_a
+      , arrow_buttons c_a
+      ]
+  , div
+      (
+        font_attributes ++
+        [ Attr.style "width" ( toPx viewParams.window_width )
+        , Attr.style "height" ( toPx 20 )
+        , Attr.style "margin-top" ( toPx 4 )
+        , Attr.style "overflow" "hidden"
+        , Attr.style "font-size" ( toPx 18 )
+        , Attr.style "color" c_a
+        , Attr.style "text-align" "center"
+        ]
+      )
+      [ div
+          [ Attr.style "float" "left"
+          , Attr.style "width" ( toPx button_stack_width) ]
+          [ text "select mode" ]
+      , div
+          [ Attr.style "margin-left" ( toPx space_text_left )
+          , Attr.style "width" ( toPx space_text_width )
+          , Attr.style "float" "left" ]
+          [ text "center camera" ]
+      , div [ Attr.style "margin-left" "80px", Attr.style "float" "left" ] [ text "move camera" ]
       ]
   ]
 
