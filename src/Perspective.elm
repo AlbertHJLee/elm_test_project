@@ -413,14 +413,6 @@ toPx length =
 viewControls model =
   let
     mode = model.mode
-    mode_text =
-      case mode of
-        Iso ->
-          "isometric"
-        OnePoint ->
-          "one-point"
-        _ ->
-          "one-point"
     number_button n color =
       div
         ( button_attributes color ++ font_attributes )
@@ -503,17 +495,9 @@ viewControls model =
     c_b = "#606060"
   in
   [ div
-      (
-        font_attributes ++
-        [ Attr.style "margin-top" ( toPx 24 )
-        , Attr.style "text-align" "center"
-        ]
-      )
-      [ text ( "Perspective Mode: " ++ mode_text ) ]
-  , div
       [ Attr.style "width" ( toPx viewParams.window_width )
       , Attr.style "height" ( toPx button_container_height )
-      , Attr.style "margin-top" ( toPx 8 )
+      , Attr.style "margin-top" ( toPx 24 )
       , Attr.style "margin-left" ( toPx 20 )
       , Attr.style "overflow" "hidden"
       ]
@@ -566,12 +550,23 @@ viewObjects model =
 
     -- Prepare a unique integer ID for each masked polygon and add colors
     polygonsWithIDs = addMaskIds colors polygonsTransformed
+
+    mode = model.mode
+    mode_text =
+      case mode of
+        Iso ->
+          "isometric"
+        OnePoint ->
+          "one-point"
+        _ ->
+          "one-point"
   in
   div
     [ Attr.style "width" ( toPx viewParams.window_width )
     , Attr.style "height" ( toPx viewParams.window_height )
     , Attr.style "background-color" "#808080"
     , Attr.style "margin" "auto"
+    , Attr.style "position" "relative"
     ]
     [ Svg.svg
         [ width ( toPx viewParams.window_width )
@@ -582,6 +577,15 @@ viewObjects model =
           polygonsWithIDs ++
           []  -- Placeholder for future content
         )
+    , div
+        [ Attr.style "position" "absolute"
+        , Attr.style "top" ( toPx ( viewParams.window_height - 36 ) )
+        , Attr.style "width" ( toPx viewParams.window_width )
+        ]
+        [ div
+            ( font_attributes ++ [ Attr.style "text-align" "center", Attr.style "color" "#ffffff" ] )
+            [ text ( "Perspective Mode: " ++ mode_text ) ]
+        ]
     ]
 
 
