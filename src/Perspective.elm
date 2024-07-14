@@ -503,7 +503,7 @@ viewControls model =
       ]
       [ number_button 0 ( if mode == Iso then c_b else c_a )
       , number_button 1 ( if mode == OnePoint then c_b else c_a )
-      , number_button 2 c_a
+      , number_button 2 ( if mode == TwoPoint then c_b else c_a )
       , space_button c_a
       , arrow_buttons c_a
       ]
@@ -558,6 +558,8 @@ viewObjects model =
           "isometric"
         OnePoint ->
           "one-point"
+        TwoPoint ->
+          "...TBD..."
         _ ->
           "one-point"
   in
