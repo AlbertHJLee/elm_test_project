@@ -447,18 +447,21 @@ viewControls model =
       space_width + 2 * viewParams.button_stroke
     small_button_height = viewParams.button_height / 2 - viewParams.button_stroke
     svg_arrow color angle =
+      let svgsize = "20px" in
       div
         [ Attr.style "margin" "0 auto"
-        , Attr.style "width" "20px"   -- ( toPx viewParams.button_height )
-        , Attr.style "height" "20px"  -- ( toPx viewParams.button_height )
+        , Attr.style "width" svgsize
+        , Attr.style "height" svgsize
         ]
         [
           Svg.svg
-            [ width "20px"
-            , height "20px" ]
+            [ width svgsize
+            , height svgsize ]
             [ Svg.polygon
-                [ points "4,4 4,16 16,10"
-                , fill color
+                [ points "5,5 5,15 15,10"
+                , fillOpacity "0.0"
+                , stroke color
+                , strokeWidth "2"
                 , transform ( "rotate(" ++ ( String.fromFloat angle ) ++ " 10,10)" ) ]
                 []
             ]
@@ -481,23 +484,20 @@ viewControls model =
         [ div
             ( button_attributes color ++ font_attributes ++ [ Attr.style "margin-right" "0" ] )
             [ svg_arrow c_a 180 ]
-            -- [ text "←" ]
         , div
             [ Attr.style "display" "flex"
-            , Attr.style "align-items" "center"
-            , Attr.style "justify-content" "center"
             , Attr.style "float" "left"
             , Attr.style "flex-direction" "column"
             , Attr.style "height" ( toPx button_container_height )
             , Attr.style "margin" "0"
+            , Attr.style "margin-top" ( toPx viewParams.button_margin )
             ]
-            [ small_botton ( svg_arrow c_a -90 ) c_a    -- "↑" c_a
-            , small_botton ( svg_arrow c_a  90 ) c_a    -- "↓" c_a
+            [ small_botton ( svg_arrow c_a -90 ) c_a    -- Leaving unicode arrow here
+            , small_botton ( svg_arrow c_a  90 ) c_a    -- in case we need them again: "↑↓←→"
             ]
         , div
             ( button_attributes color ++ font_attributes ++ [ Attr.style "margin-left" "0" ] )
             [ svg_arrow c_a 0 ]
-            -- [ text "→" ]
         ]
     c_a = "#c0c0c0"
     c_b = "#606060"
@@ -514,6 +514,7 @@ viewControls model =
       [ Attr.style "width" ( toPx viewParams.window_width )
       , Attr.style "height" ( toPx button_container_height )
       , Attr.style "margin-top" ( toPx 8 )
+      , Attr.style "margin-left" ( toPx 20 )
       , Attr.style "overflow" "hidden"
       ]
       [ number_button 0 ( if mode == Iso then c_b else c_a )
@@ -528,6 +529,7 @@ viewControls model =
         [ Attr.style "width" ( toPx viewParams.window_width )
         , Attr.style "height" ( toPx 20 )
         , Attr.style "margin-top" ( toPx 4 )
+        , Attr.style "margin-left" ( toPx 20 )
         , Attr.style "overflow" "hidden"
         , Attr.style "font-size" ( toPx 18 )
         , Attr.style "color" c_a
@@ -543,7 +545,11 @@ viewControls model =
           , Attr.style "width" ( toPx space_text_width )
           , Attr.style "float" "left" ]
           [ text "center camera" ]
-      , div [ Attr.style "margin-left" "80px", Attr.style "float" "left" ] [ text "move camera" ]
+      , div
+          [ Attr.style "margin-left" ( toPx space_left )
+          , Attr.style "width" ( toPx button_stack_width)
+          , Attr.style "float" "left" ]
+          [ text "move camera" ]
       ]
   ]
 
