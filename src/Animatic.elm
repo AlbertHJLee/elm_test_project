@@ -6,11 +6,12 @@ module Animatic exposing (..)
 
 import Browser
 import Browser.Events
-import Html exposing (Html, button, div, text, h1, h2)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, text, h1, h2, select, option, input, label)
+import Html.Events exposing (onClick, onInput)
 import Html.Attributes as Attr
 import Time
 import Task
+import Dict exposing (Dict)
 
 import Svg exposing (svg, circle, rect, line, polygon, text_)
 import Svg.Attributes exposing (..)
@@ -32,14 +33,44 @@ main =
 
 -- The model should track both the time an event was triggered (click_time)
 -- and the current time. Thus, animations can be timed relative to the event
-
+--
 type alias Model =
   { index : Int
   , max_scenes : Int
   , click_time : Time.Posix
+  , click_time_aux : Time.Posix
   , current_time : Time.Posix
-  , query_answered : Bool
+  , query_status : Queries
+  , query_ready : Bool
+  , next_okay : Bool
+  , response : String
   }
+
+
+type alias Queries =
+  Dict Int QueryStatus
+
+
+-- Any given query can be Unanswered or answered.
+-- If it is answered, it can have been answered Correctly or Incorrectly.
+--
+-- Depending on the degree of freedom available to submitted answers, several
+-- different answers could map to the same Incorrect QueryStatus. The current
+-- model does not differentiate between these potentially different incorrect
+-- answers, but this could be added as a future feature.
+--
+type QueryStatus
+  = Unanswered
+  | Correct
+  | Incorrect
+
+
+init_queries : Dict Int QueryStatus
+init_queries =
+  Dict.fromList
+    [ ( 2, Unanswered )
+    , ( 4, Unanswered )
+    ]
 
 
 init : () -> (Model, Cmd Msg)
@@ -49,7 +80,11 @@ init _ =
       4
       (Time.millisToPosix 0)
       (Time.millisToPosix 0)
+      (Time.millisToPosix 0)
+      ( init_queries )
       False
+      True
+      ""
   , Task.perform SetTime Time.now
   )
 
@@ -63,9 +98,22 @@ type Msg
   = Previous
   | Next
   | SetTime Time.Posix
+  | SetAuxTime Time.Posix
   | Tick Time.Posix
   | Reset
   | Repeat
+  | SetResponse String
+  | Answer QueryStatus
+  | DoNothing
+
+
+checkIfNotUnanswered destination model =
+  if ( Dict.member destination model.query_status )
+  then
+    if ( ( Dict.get destination model.query_status) == Just Unanswered )
+    then False
+    else True
+  else True
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -78,7 +126,13 @@ update msg model =
         , Cmd.none
         )
       else
-        ( { model | index = model.index + 1 }
+        let
+          destination = model.index + 1
+        in
+        ( { model
+            | index = destination
+            , next_okay = ( checkIfNotUnanswered destination model )
+          }
         , Task.perform SetTime Time.now
         )
 
@@ -88,13 +142,29 @@ update msg model =
         , Cmd.none
         )
       else
-        ( { model | index = model.index - 1 }
+        let
+          destination = model.index - 1
+        in
+        ( { model
+            | index = destination
+            , next_okay = ( checkIfNotUnanswered destination model )
+          }
         , Task.perform SetTime Time.now
         )
 
     SetTime newTime ->
       ( { model
           | click_time = newTime
+          , current_time = newTime
+          , query_ready = False
+          , response = ""
+        }
+      , Cmd.none
+      )
+
+    SetAuxTime newTime ->
+      ( { model
+          | click_time_aux = newTime
           , current_time = newTime
         }
       , Cmd.none
@@ -108,8 +178,12 @@ update msg model =
       )
 
     Reset ->
+      let
+        destination = 0
+      in
       ( { model
-          | index = 0
+          | index = destination
+          , next_okay = ( checkIfNotUnanswered destination model )
         }
       , Task.perform SetTime Time.now
       )
@@ -120,6 +194,33 @@ update msg model =
       ( model
       , Task.perform SetTime Time.now
       )
+
+    SetResponse user_input ->
+      ( { model
+          | response = user_input
+          , query_ready = True
+        }
+      , if ( model.response == "" )
+        then ( Task.perform SetAuxTime Time.now )
+        else Cmd.none
+      )
+
+    Answer querystatus ->
+      let
+        -- We don't know if key is present so querystatus must be wrapped in Maybe
+        key = model.index
+        new_query_status = Dict.update key (\_ -> Just querystatus) model.query_status
+      in
+      ( { model
+          | query_status = new_query_status
+          , query_ready = False  -- Submit button should not stay visible after answer is submitted
+          , next_okay = True     -- Allow user to advance to next scene
+        }
+      , Task.perform SetTime Time.now
+      )
+
+    DoNothing ->
+      ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -140,7 +241,7 @@ view model =
     window_height = 540
     window_half_stroke = 1
     window_stroke = window_half_stroke * 2
-    win_stroke_text = ((String.fromInt window_stroke) ++ "px solid #f0f0f0")
+    win_stroke_text = ((String.fromInt window_stroke) ++ "px solid #e0e0e0")
 
     -- Spacing for control area
     window_margin_bottom = 20 - window_stroke
@@ -149,7 +250,7 @@ view model =
     -- Make room for border strokes, which get added to outside of div box
     panel_width = window_width + 4 * window_half_stroke
     panel_height = window_height + input_area_height + 4 * window_half_stroke
-    panel_padding_visual = 30
+    panel_padding_visual = 48
     panel_padding = panel_padding_visual - 2 * window_half_stroke
 
     -- Control Box
@@ -189,10 +290,9 @@ view model =
           -- Placeholder for UI element
           div
             [ Attr.style "width" ((String.fromInt window_width) ++ "px")
-            , Attr.style "height" "10px"
             , Attr.style "margin" "auto"
             ]
-            []
+            [ viewQuery model ]
         ,
           -- Box holding main user controls
           div
@@ -206,10 +306,15 @@ viewControls : Model -> Html Msg
 viewControls model =
   let
     controls_font = "20px"
+    -- Only allow ">" button to go to next scene if there isn't a query to answer
+    next_msg =
+      if model.next_okay
+      then Next
+      else DoNothing
   in
   div
     [ Attr.style "width" "160px"
-    , Attr.style "margin" "10px auto"
+    , Attr.style "margin" "12px auto"
     , Attr.style "text-align" "center"
     , Attr.style "font-size" controls_font
     , Attr.style "background-color" "white"
@@ -225,10 +330,64 @@ viewControls model =
         [ text (String.fromInt model.index) ]
     , button [ onClick Previous, Attr.style "font-size" controls_font ] [ text "<" ]
     , button [ onClick Repeat,   Attr.style "font-size" controls_font ] [ text "repeat" ]
-    , button [ onClick Next,     Attr.style "font-size" controls_font ] [ text ">" ]
-    , div [ Attr.style "height" "10px" ] []
+    , button [ onClick next_msg, Attr.style "font-size" controls_font ] [ text ">" ]
+    , div [ Attr.style "height" "12px" ] []
     , button [ onClick Reset,    Attr.style "font-size" controls_font ] [ text "reset" ]
     ]
+
+
+viewQuery : Model -> Html Msg
+viewQuery model =
+  let
+    diff = (Time.posixToMillis model.current_time) - (Time.posixToMillis model.click_time_aux)
+    t = (toFloat diff) * 0.001
+    t1 = 0.0
+    t2 = t1 + 0.6
+    t3 = t2 + 0.0
+    ease_1 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    -- Get div parameters
+    height_min = 12   -- specify in pixels
+    height_max = 48
+    -- Only show "Submit" button if query is ready to receive answer
+    height =
+      if model.query_ready
+      then interpolate height_min height_max ease_1
+      else height_min
+    show_button =
+      if model.query_ready
+      then (t > t3)
+      else False
+    -- Translate to html
+    div_height = ((String.fromFloat height) ++ "px")
+    controls_font = "20px"
+  in
+  div
+    [ Attr.style "width" "100%"
+    , Attr.style "height" div_height
+    , Attr.style "display" "flex"
+    , Attr.style "align-items" "center"
+    , Attr.style "justify-content" "center"
+    , Attr.style "text-align" "center"
+    , Attr.style "margin" "auto"
+    ]
+    [ if show_button
+      then
+        button
+          [ onClick ( checkQuery model )
+          , Attr.style "font-size" controls_font
+          ]
+          [ text "Submit" ]
+      else
+        div [] []
+    ]
+
+
+checkQuery model =
+  case model.index of
+    2 -> if model.response == "a^2"
+         then Answer Correct
+         else Answer Incorrect
+    _ -> Answer Unanswered
 
 
 viewScene : Model -> Html Msg
@@ -238,9 +397,11 @@ viewScene model =
     [ case model.index of
         0 -> scene_zero model
         1 -> scene_one model
-        2 ->
-             if model.query_answered then scene_two_b model
-             else scene_two_a model
+        2 -> case ( Dict.get 2 model.query_status ) of
+                Just Unanswered -> scene_two_a model
+                Just Correct    -> scene_two_b model
+                Just Incorrect  -> scene_two_b model
+                Nothing         -> scene_two_b model
         3 -> scene_three model
         4 -> scene_four model
         _ -> div [] []
@@ -572,19 +733,21 @@ scene_two_a model =
     sq2 = { x = (sq1.x + 80 + 3), y = 300, s = 60 }
 
     -- Fade in text
-    ease_3 = transition 3.2 3.6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
-    txt1 = { x = (sq1.x + sq1.s / 2.0), y = (sq1.y + sq1.s / 2.0) }
+    t5 = 2.9
+    t6 = t5 + 0.4
+    ease_3 = transition t5 t6 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    txt1 = { x = (sq1.x + (sq1.s + sq2.s) / 2.0), y = (sq2.y + sq2.s + 64) }
     txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
-    texts1 = [ Svg.text "b"
-             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
-    texts2 = [ Svg.text "a"
-             , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+    texts1 = [ text "What is the area of the green square?" ]
+    texts2 = [ text "?" ]
+
+    controls_font = "20px"
   in
   div
     []
     [ svg
         [ width "600"
-        , height "500"
+        , height "440"
         ]
         (
           -- Render squares before triangles so that triangle strokes are not obscured
@@ -596,6 +759,44 @@ scene_two_a model =
           , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
           ]
         )
+    , div
+        [ Attr.style "justify-content" "center"
+        , Attr.style "display" "flex"
+        , Attr.style "font-size" "20px"
+        , Attr.style "opacity" ( String.fromFloat ease_3 )
+        ]
+        [ ( radio_unit "scene_two_question" "a" ( text "a" ) model )
+        , ( radio_unit "scene_two_question" "2a" ( text "2a" ) model )
+        , ( radio_unit "scene_two_question" "2a^2" ( text "2a^2" ) model )
+        , ( radio_unit "scene_two_question" "a^2" ( text "a^2" ) model )
+        ]
+    ]
+
+
+selections model =
+  [ select [ onInput SetResponse ]
+      [ option [ Attr.value "a" ] [ text "a" ]
+      , option [ Attr.value "2a" ] [ text "2a" ]
+      , option [ Attr.value "2a^2" ] [ text "2a^2" ]
+      ]
+  , div [] [ text ("Selected: " ++ model.response) ]
+  ]
+
+
+radio_unit name value html_text model =
+  div
+    [ Attr.style "display" "inline-block"
+    , Attr.style "margin-right" "20px"
+    ]
+    [ input
+        [ Attr.type_ "radio"
+        , Attr.name name
+        , Attr.value value
+        , Attr.checked (model.response == value)
+        , onClick (SetResponse value)
+        ]
+        []
+    , label [] [ html_text ]
     ]
 
 
@@ -610,21 +811,35 @@ scene_two_b model =
     sq2 = { x = (sq1.x + 80 + 3), y = 300, s = 60 }
 
     -- Fade in text
-    t1 = 0.5
-    t2 = t1 + 0.4
-    ease_3 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
+    t1 = 0.85
+    t2 = t1 + 0.6
+    ease_1 = transition t1 t2 ( Ease.bezier 0.26 0.79 0.28 1.00 ) t
     txt1 = { x = (sq1.x + sq1.s / 2.0), y = (sq1.y + sq1.s / 2.0) }
     txt2 = { x = (sq2.x + sq2.s / 2.0), y = (sq2.y + sq2.s / 2.0) }
     texts1 = [ Svg.text "b"
              , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
     texts2 = [ Svg.text "a"
              , Svg.tspan [ fontSize "11", dy "-8" ] [ Svg.text "2" ] ]
+    -- txt3 = { x = (sq1.x + (sq1.s + sq2.s) / 2.0), y = (sq2.y + sq2.s + 64) }
+
+    t3 = 0.0
+    t4 = t3 + 0.15
+    ease_3 = transition t3 t4 ( Ease.bezier 0.5 0.01 0.5 1.00 ) t
+    answer_correct = ( Dict.get model.index model.query_status ) == Just Correct
+    text3 =
+      if answer_correct
+      then "Correct!"
+      else "Incorrect"
+    color3 =
+      if answer_correct
+      then "#20c0f0"
+      else "#f0b010"
   in
   div
     []
     [ svg
         [ width "600"
-        , height "500"
+        , height "400"
         ]
         (
           -- Render squares before triangles so that triangle strokes are not obscured
@@ -632,10 +847,32 @@ scene_two_b model =
           , square_svg { x = sq2.x, y = sq2.y, s = sq2.s, angle = 0.0, opacity = 1.0, color = "#c0ffc0" }
           ] ++
           ( triangles_paired 1.0 ) ++
-          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_3, fontsize = "20px" }
-          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_3, fontsize = "20px" }
+          [ text_svg { x = txt1.x, y = txt1.y, texts = texts1, opacity = ease_1, fontsize = "20px" }
+          , text_svg { x = txt2.x, y = txt2.y, texts = texts2, opacity = ease_1, fontsize = "20px" }
+          -- , text_svg { x = txt3.x, y = txt3.y, texts = texts3, opacity = ease_3, fontsize = "32px", color = color3 }
           ]
         )
+    , div
+        [ Attr.style "display" "flex"
+        , Attr.style "flex-direction" "column"
+        , Attr.style "text-align" "center"
+        , Attr.style "opacity" ( String.fromFloat ease_3 )
+        ]
+        [ div
+            [ Attr.style "height" "32px"
+            , Attr.style "font-size" "32px"
+            , Attr.style "color" color3
+            ]
+            [ text text3 ]
+        , div
+            [ Attr.style "height" "12px" ]
+            []
+        , div
+            [ Attr.style "height" "32px"
+            , Attr.style "font-size" "20px"
+            ]
+            [ text "The area of the green square is: a^2" ]
+        ]
     ]
 
 
